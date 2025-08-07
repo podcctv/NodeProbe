@@ -33,8 +33,20 @@ function App() {
   const [info, setInfo] = useState<TestRecord | null>(null);
   const [records, setRecords] = useState<TestRecord[]>([]);
   const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
-  const [pingTarget, setPingTarget] = useState('8.8.8.8');
   const [pingOutput, setPingOutput] = useState<string | null>(null);
+  const [traceOutput, setTraceOutput] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [uploadProgress, setUploadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
+    null,
+  );
+  const [speedRunning, setSpeedRunning] = useState(false);
 
   useEffect(() => {
     const collect = async () => {
@@ -46,9 +58,6 @@ function App() {
         });
         const data = await res.json();
         setInfo(data);
-        if (data.client_ip) {
-          setPingTarget(data.client_ip);
-        }
       } catch (err) {
         console.error('Failed to collect info', err);
       }
@@ -71,17 +80,96 @@ function App() {
     setTimeout(loadRecords, 0);
   }, []);
 
-  const runPing = async () => {
-    if (!pingTarget) return;
+  useEffect(() => {
+    if (info?.client_ip) {
+      runPing(info.client_ip);
+      runTraceroute(info.client_ip);
+    }
+  }, [info]);
+
+  const runPing = async (host: string) => {
     setPingOutput('Running...');
     try {
-      const res = await fetch(`/ping?host=${encodeURIComponent(pingTarget)}`);
+      const res = await fetch(`/ping?host=${encodeURIComponent(host)}&count=10`);
       const data = await res.json();
       setPingOutput(data.output || data.error || 'No output');
     } catch (err) {
       console.error('Ping failed', err);
       setPingOutput('Ping failed');
     }
+  };
+
+  const runTraceroute = async (host: string) => {
+    setTraceOutput('Running...');
+    try {
+      const res = await fetch(`/traceroute?host=${encodeURIComponent(host)}`);
+      const data = await res.json();
+      setTraceOutput(data.output || data.error || 'No output');
+    } catch (err) {
+      console.error('Traceroute failed', err);
+      setTraceOutput('Traceroute failed');
+    }
+  };
+
+  function formatProgress(p: { transferred: number; size: number }) {
+    if (!p.size) return '';
+    const transferredMB = (p.transferred / 1024 / 1024).toFixed(2);
+    const sizeMB = (p.size / 1024 / 1024).toFixed(0);
+    const percent = ((p.transferred / p.size) * 100).toFixed(0);
+    return `${transferredMB}M/${sizeMB}M ${percent}%`;
+    }
+
+  async function downloadWithProgress(size: number) {
+    setDownloadProgress({ transferred: 0, size });
+    const res = await fetch(`/speedtest/download?size=${size}`);
+    const reader = res.body?.getReader();
+    if (!reader) return 0;
+    let received = 0;
+    const start = performance.now();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.length;
+      setDownloadProgress({ transferred: received, size });
+    }
+    const end = performance.now();
+    return ((size * 8) / (end - start) / 1000);
+  }
+
+  function uploadWithProgress(size: number) {
+    setUploadProgress({ transferred: 0, size });
+    return new Promise<number>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      const start = performance.now();
+      xhr.open('POST', '/speedtest/upload');
+      xhr.upload.onprogress = (e) => {
+        setUploadProgress({ transferred: e.loaded, size });
+      };
+      xhr.onload = () => {
+        const end = performance.now();
+        resolve((size * 8) / (end - start) / 1000);
+      };
+      xhr.send(new Uint8Array(size));
+    });
+  }
+
+  const runSpeedtest = async (downloadSize: number, uploadSize: number) => {
+    setSpeedRunning(true);
+    setSpeedResult(null);
+    const down = await downloadWithProgress(downloadSize);
+    const up = await uploadWithProgress(uploadSize);
+    setSpeedResult({ down, up });
+    await fetch('/tests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        test_target: 'speedtest',
+        speedtest_type: `${downloadSize / 1024 / 1024}M`,
+        download_mbps: down,
+        upload_mbps: up,
+      }),
+    });
+    setSpeedRunning(false);
   };
 
   return (
@@ -164,24 +252,53 @@ function App() {
         </div>
 
         <div className="space-y-2 text-center">
-          <h2 className="text-xl mb-2">Manual Tests</h2>
-          <div className="flex justify-center space-x-2">
-            <input
-              className="px-2 py-1 rounded bg-gray-800 text-green-400"
-              value={pingTarget}
-              onChange={(e) => setPingTarget(e.target.value)}
-              placeholder="Host"
-            />
-            <button
-              className="px-4 py-1 rounded bg-green-600 text-black"
-              onClick={runPing}
-            >
-              Ping
-            </button>
-          </div>
+          <h2 className="text-xl mb-2">Auto Ping Test</h2>
           {pingOutput && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {pingOutput}
+            </pre>
+          )}
+        </div>
+
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl mb-2">Traceroute</h2>
+          {traceOutput && (
+            <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
+              {traceOutput}
+            </pre>
+          )}
+        </div>
+
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl mb-2">Speed Test</h2>
+          <div className="flex justify-center space-x-2">
+            <button
+              className="px-4 py-1 rounded bg-green-600 text-black"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024)}
+            >
+              100M
+            </button>
+            <button
+              className="px-4 py-1 rounded bg-green-600 text-black"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024)}
+            >
+              500M
+            </button>
+            <button
+              className="px-4 py-1 rounded bg-green-600 text-black"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024)}
+            >
+              1G
+            </button>
+          </div>
+          <div>Download Progress: {formatProgress(downloadProgress)}</div>
+          <div>Upload Progress: {formatProgress(uploadProgress)}</div>
+          {speedResult && (
+            <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
+              {`Download: ${speedResult.down.toFixed(2)} Mbps\nUpload: ${speedResult.up.toFixed(2)} Mbps`}
             </pre>
           )}
         </div>

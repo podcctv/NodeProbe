@@ -376,6 +376,49 @@ def create_test(
         if ping_ms is not None:
             data["ping_ms"] = ping_ms
 
+    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
+    existing_records = (
+        db.query(models.TestRecord)
+        .filter(
+            models.TestRecord.client_ip == client_ip,
+            models.TestRecord.timestamp >= ten_min_ago,
+        )
+        .all()
+    )
+
+    if existing_records:
+        values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
+        if data.get("ping_ms") is not None:
+            values_ping.append(data["ping_ms"])
+        values_down = [r.download_mbps for r in existing_records if r.download_mbps is not None]
+        if data.get("download_mbps") is not None:
+            values_down.append(data["download_mbps"])
+        values_up = [r.upload_mbps for r in existing_records if r.upload_mbps is not None]
+        if data.get("upload_mbps") is not None:
+            values_up.append(data["upload_mbps"])
+
+        for r in existing_records:
+            db.delete(r)
+
+        averaged = {
+            "client_ip": client_ip,
+            "location": data.get("location") or existing_records[0].location,
+            "asn": data.get("asn") or existing_records[0].asn,
+            "isp": data.get("isp") or existing_records[0].isp,
+            "ping_ms": sum(values_ping) / len(values_ping) if values_ping else None,
+            "download_mbps": sum(values_down) / len(values_down) if values_down else None,
+            "upload_mbps": sum(values_up) / len(values_up) if values_up else None,
+            "speedtest_type": data.get("speedtest_type") or existing_records[0].speedtest_type,
+            "mtr_result": data.get("mtr_result") or existing_records[0].mtr_result,
+            "iperf_result": data.get("iperf_result") or existing_records[0].iperf_result,
+            "test_target": data.get("test_target") or existing_records[0].test_target,
+        }
+        db_record = models.TestRecord(**averaged)
+        db.add(db_record)
+        db.commit()
+        db.refresh(db_record)
+        return db_record
+
     db_record = models.TestRecord(**data)
     db.add(db_record)
     db.commit()
