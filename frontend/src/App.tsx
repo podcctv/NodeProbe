@@ -463,8 +463,11 @@ function App() {
         <div className="flex flex-col items-center space-y-4">
           <pre className="whitespace-pre font-mono mx-auto">{ASCII_LOGO}</pre>
           <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
-          <div className="text-lg animate-pulse">Loading...</div>
+          <div className="text-lg animate-pulse">测试中，请不要关闭或刷新。</div>
           {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
+          {downloadProgress.size > 0 && (
+            <div className="text-sm">下载进度：{formatProgress(downloadProgress)}</div>
+          )}
         </div>
       </div>
     );
@@ -527,22 +530,22 @@ function App() {
                       </td>
                       <td className="px-2 py-1 border border-green-700">
                         {typeof r.single_dl_mbps === 'number'
-                          ? `${r.single_dl_mbps.toFixed(2)} Mbps`
+                          ? `${r.single_dl_mbps.toFixed(2)}`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
                         {typeof r.single_ul_mbps === 'number'
-                          ? `${r.single_ul_mbps.toFixed(2)} Mbps`
+                          ? `${r.single_ul_mbps.toFixed(2)}`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
                         {typeof r.multi_dl_mbps === 'number'
-                          ? `${r.multi_dl_mbps.toFixed(2)} Mbps`
+                          ? `${r.multi_dl_mbps.toFixed(2)}`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
                         {typeof r.multi_ul_mbps === 'number'
-                          ? `${r.multi_ul_mbps.toFixed(2)} Mbps`
+                          ? `${r.multi_ul_mbps.toFixed(2)}`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
@@ -651,13 +654,13 @@ function App() {
           </div>
           <div>Download Progress: {formatProgress(downloadProgress)}</div>
           <div>Upload Progress: {formatProgress(uploadProgress)}</div>
-          <div className="flex justify-center space-x-4">
+          <div className="flex w-full justify-between">
             <div className="bg-black bg-opacity-50 rounded p-2 w-40">
               <div className="flex items-center justify-center">
                 <span className="mr-1">⬇️</span>Download
               </div>
               <div className="text-lg">
-                {currentDownloadSpeed.toFixed(2)} Mbps
+                {currentDownloadSpeed.toFixed(2)}
               </div>
             </div>
             <div className="bg-black bg-opacity-50 rounded p-2 w-40">
@@ -665,20 +668,20 @@ function App() {
                 <span className="mr-1">⬆️</span>Upload
               </div>
               <div className="text-lg">
-                {currentUploadSpeed.toFixed(2)} Mbps
+                {currentUploadSpeed.toFixed(2)}
               </div>
             </div>
           </div>
           {downloadSpeeds.length > 0 && (
             <SpeedChart
-              title="Download Speed (Mbps)"
+              title="Download Speed"
               speeds={downloadSpeeds}
               color="#00ffff"
             />
           )}
           {uploadSpeeds.length > 0 && (
             <SpeedChart
-              title="Upload Speed (Mbps)"
+              title="Upload Speed"
               speeds={uploadSpeeds}
               color="#ff00ff"
             />
@@ -686,10 +689,10 @@ function App() {
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {speedResult.single
-                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} Mbps ⬆️ ${speedResult.single.up.toFixed(2)} Mbps\n`
+                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
                 : ''}
               {speedResult.multi
-                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} Mbps ⬆️ ${speedResult.multi.up.toFixed(2)} Mbps`
+                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
                 : ''}
             </pre>
           )}
