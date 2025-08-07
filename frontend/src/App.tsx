@@ -13,9 +13,15 @@ interface TestRecord {
   test_target?: string | null;
 }
 
+interface TestsResponse {
+  message?: string;
+  records: TestRecord[];
+}
+
 function App() {
   const [info, setInfo] = useState<TestRecord | null>(null);
   const [records, setRecords] = useState<TestRecord[]>([]);
+  const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
   const [pingTarget, setPingTarget] = useState('8.8.8.8');
   const [pingOutput, setPingOutput] = useState<string | null>(null);
 
@@ -36,7 +42,11 @@ function App() {
     const loadRecords = async () => {
       try {
         const res = await fetch('/tests');
-        setRecords(await res.json());
+        const data: TestsResponse = await res.json();
+        setRecords(data.records || []);
+        if (data.message) {
+          setRecordsMessage(data.message);
+        }
       } catch (err) {
         console.error('Failed to load previous tests', err);
       }
@@ -77,9 +87,9 @@ function App() {
           <div>Loading...</div>
         )}
 
-        {records.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
+        <div className="space-y-2">
+          <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
+          {records.length > 0 ? (
             <ul className="text-sm space-y-1">
               {records
                 .slice(-5)
@@ -91,8 +101,12 @@ function App() {
                   </li>
                 ))}
             </ul>
-          </div>
-        )}
+          ) : (
+            <div className="text-sm text-center text-gray-400">
+              {recordsMessage || 'No test records found. Run a test to get started.'}
+            </div>
+          )}
+        </div>
 
         <div className="space-y-2 text-center">
           <h2 className="text-xl mb-2">Manual Tests</h2>

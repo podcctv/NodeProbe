@@ -36,9 +36,21 @@ def get_db():
         db.close()
 
 
-@app.get("/tests", response_model=list[schemas.TestRecord])
+@app.get("/tests", response_model=schemas.TestsResponse)
 def read_tests(db: Session = Depends(get_db)):
-    return db.query(models.TestRecord).all()
+    """Return all stored test records.
+
+    If the database is empty a friendly message is included in the response so
+    that browsing to ``/tests`` does not simply yield an empty page.
+    """
+
+    records = db.query(models.TestRecord).all()
+    if not records:
+        return {
+            "message": "No test records found. POST to /tests to create one.",
+            "records": [],
+        }
+    return {"records": records}
 
 
 @app.post("/tests", response_model=schemas.TestRecord)
