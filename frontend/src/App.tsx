@@ -471,6 +471,9 @@ function App() {
           {downloadProgress.size > 0 && (
             <div className="text-sm">下载进度：{formatProgress(downloadProgress)}</div>
           )}
+          {uploadProgress.size > 0 && (
+            <div className="text-sm">上传进度：{formatProgress(uploadProgress)}</div>
+          )}
         </div>
       </div>
     );
