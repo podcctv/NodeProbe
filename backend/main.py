@@ -116,16 +116,13 @@ def create_default_user():
                 % password
             )
             logger.info(msg)
-            print(msg, flush=True)
         else:
             logger.info("Admin user already exists; no default password generated.")
-            print("Admin user already exists; no default password generated.", flush=True)
 
         log_msg = (
             "Login help: visit http://%s:8380/ to access the dashboard." % host_ip
         )
         logger.info(log_msg)
-        print(log_msg, flush=True)
     finally:
         db.close()
 
