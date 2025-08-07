@@ -51,14 +51,9 @@
         <th>Recorded</th>
       </tr>
       {% for r in records %}
-      <tr>
-        <td>{{ r.client_ip|mask_ip }}</td>
-        <td>{{ r.location or '' }}</td>
-        <td>{{ r.asn or '' }}</td>
-        <td>{{ r.isp or '' }}</td>
-        <td>{% if r.ping_ms %}{{ '%.2f'|format(r.ping_ms) }} ms{% endif %}</td>
-        <td>{{ r.timestamp|short_ts }}</td>
-      </tr>
+
+      <li>{{ r.client_ip|mask_ip }}{% if r.location %} - {{ r.location }}{% endif %}{% if r.ping_ms %} - {{ '%.2f'|format(r.ping_ms) }} ms{% endif %} - {{ r.timestamp|short_ts }}</li>
+
       {% endfor %}
     </table>
 
