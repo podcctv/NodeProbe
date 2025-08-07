@@ -41,7 +41,7 @@ docker compose up -d
 访问示例：
 
 ```
-http://your-server-ip:8000/tests
+http://your-server-ip:8380/tests
 ```
 
 ### 🚀 使用部署脚本
@@ -62,7 +62,7 @@ chmod +x ./NodeProbe/deploy.sh
 
 ```bash
 docker pull ghcr.io/podcctv/nodeprobe:latest
-docker run -d --name nodeprobe -p 8000:8000 \
+docker run -d --name nodeprobe -p 8380:8380 \
   -v /opt/NodeProbe/data:/app/data \
   ghcr.io/podcctv/nodeprobe:latest
 ```

@@ -2,7 +2,7 @@ services:
   nodeprobe:
     build: .
     ports:
-      - "8000:8000"
+      - "8380:8380"
     volumes:
       - /opt/NodeProbe/data:/app/data
     restart: unless-stopped
