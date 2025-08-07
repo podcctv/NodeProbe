@@ -426,6 +426,16 @@ def create_test(
         values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
         if data.get("ping_ms") is not None:
             values_ping.append(data["ping_ms"])
+        values_ping_min = [
+            r.ping_min_ms for r in existing_records if r.ping_min_ms is not None
+        ]
+        if data.get("ping_min_ms") is not None:
+            values_ping_min.append(data["ping_min_ms"])
+        values_ping_max = [
+            r.ping_max_ms for r in existing_records if r.ping_max_ms is not None
+        ]
+        if data.get("ping_max_ms") is not None:
+            values_ping_max.append(data["ping_max_ms"])
         values_down = [r.download_mbps for r in existing_records if r.download_mbps is not None]
         if data.get("download_mbps") is not None:
             values_down.append(data["download_mbps"])
@@ -441,7 +451,13 @@ def create_test(
             "location": data.get("location") or existing_records[0].location,
             "asn": data.get("asn") or existing_records[0].asn,
             "isp": data.get("isp") or existing_records[0].isp,
+            "ping_min_ms": sum(values_ping_min) / len(values_ping_min)
+            if values_ping_min
+            else None,
             "ping_ms": sum(values_ping) / len(values_ping) if values_ping else None,
+            "ping_max_ms": sum(values_ping_max) / len(values_ping_max)
+            if values_ping_max
+            else None,
             "download_mbps": sum(values_down) / len(values_down) if values_down else None,
             "upload_mbps": sum(values_up) / len(values_up) if values_up else None,
             "speedtest_type": data.get("speedtest_type") or existing_records[0].speedtest_type,
