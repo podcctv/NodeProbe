@@ -37,19 +37,24 @@ def get_db():
 
 
 @app.get("/tests", response_model=schemas.TestsResponse)
-def read_tests(db: Session = Depends(get_db)):
+def read_tests(request: Request, db: Session = Depends(get_db)):
     """Return all stored test records.
 
-    If the database is empty a friendly message is included in the response so
-    that browsing to ``/tests`` does not simply yield an empty page.
+    When the database is empty a default record is created automatically so
+    that the endpoint always returns at least one item without requiring a
+    manual ``POST`` from the user.
     """
 
     records = db.query(models.TestRecord).all()
     if not records:
-        return {
-            "message": "No test records found. POST to /tests to create one.",
-            "records": [],
-        }
+        default_record = models.TestRecord(
+            client_ip=request.client.host,
+            test_target="default",
+        )
+        db.add(default_record)
+        db.commit()
+        db.refresh(default_record)
+        records = [default_record]
     return {"records": records}
 
 
