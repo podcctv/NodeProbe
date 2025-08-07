@@ -31,7 +31,7 @@ cd NodeProbe
 docker compose up -d
 ```
 
-默认数据会存储在 `/opt/nodeprobe/data/` 下。
+默认数据会存储在 `/opt/NodeProbe/data/` 下。
 
 访问示例：
 
@@ -58,8 +58,8 @@ chmod +x ./NodeProbe/deploy.sh
 ```bash
 docker pull ghcr.io/podcctv/nodeprobe:latest
 docker run -d --name nodeprobe -p 8000:8000 \
-  -v /opt/nodeprobe/data:/app/data \
+  -v /opt/NodeProbe/data:/app/data \
   ghcr.io/podcctv/nodeprobe:latest
 ```
 
-默认数据同样会保存到 `/opt/nodeprobe/data/`。
+默认数据同样会保存到 `/opt/NodeProbe/data/`。

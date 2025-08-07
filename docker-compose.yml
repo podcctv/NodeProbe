@@ -4,5 +4,5 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - /opt/nodeprobe/data:/app/data
+      - /opt/NodeProbe/data:/app/data
     restart: unless-stopped
