@@ -23,6 +23,7 @@ class TestRecordBase(BaseModel):
     mtr_result: str | None = None
     iperf_result: str | None = None
     test_target: str | None = None
+    time_hour: str | None = None
 
 
 class TestRecordCreate(BaseModel):

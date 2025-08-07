@@ -112,7 +112,6 @@ function App() {
   const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
-  const [autoSpeedtestDone, setAutoSpeedtestDone] = useState(false);
 
   const downloadControllers = useRef<AbortController[]>([]);
   const uploadXhrs = useRef<XMLHttpRequest[]>([]);
@@ -124,16 +123,12 @@ function App() {
 
   const runInitialTests = async () => {
     setLoading(true);
-    setLoadingMsg('正在进行 ping Traceroute 测试...');
     try {
       const res = await fetch('/tests?skip_ping=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
-      // The backend returns a complete test record when initiating tests
-      // (with ping results optionally omitted if `skip_ping` is true).
-      // We can treat this response as a standard `TestRecord` for the UI.
       const data: TestRecord = await res.json();
       setInfo({
         id: data.id,
@@ -147,8 +142,21 @@ function App() {
         ping_max_ms: data.ping_max_ms,
       });
       if (data?.client_ip) {
-        await runPing(data.client_ip);
-        await runTraceroute(data.client_ip, true);
+        const steps = [
+          { msg: 'Ping', fn: () => runPing(data.client_ip) },
+          { msg: 'Traceroute', fn: () => runTraceroute(data.client_ip, true) },
+          {
+            msg: 'Speedtest',
+            fn: async () => {
+              await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8);
+              await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1);
+            },
+          },
+        ];
+        for (let i = 0; i < steps.length; i++) {
+          setLoadingMsg(`正在进行 ${steps[i].msg} 测试 (${i + 1}/${steps.length})...`);
+          await steps[i].fn();
+        }
       }
     } catch (err) {
       console.error('Failed to run initial tests', err);
@@ -220,9 +228,13 @@ function App() {
     if (!p.size) return '';
     const transferredMB = (p.transferred / 1024 / 1024).toFixed(2);
     const sizeMB = (p.size / 1024 / 1024).toFixed(0);
-    const percent = ((p.transferred / p.size) * 100).toFixed(0);
-    return `${transferredMB}M/${sizeMB}M ${percent}%`;
-    }
+    const fraction = p.transferred / p.size;
+    const percent = (fraction * 100).toFixed(0);
+    const barLen = 20;
+    const filled = Math.round(fraction * barLen);
+    const bar = `[${'#'.repeat(filled)}${'-'.repeat(barLen - filled)}]`;
+    return `${bar} ${transferredMB}M/${sizeMB}M ${percent}%`;
+  }
 
   async function downloadWithProgress(size: number, threads = 1) {
     setDownloadProgress({ transferred: 0, size });
@@ -431,16 +443,6 @@ function App() {
       setCurrentUploadSpeed(0);
     }
   };
-
-  useEffect(() => {
-    if (!loading && info && !autoSpeedtestDone) {
-      setAutoSpeedtestDone(true);
-      (async () => {
-        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8);
-        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1);
-      })();
-    }
-  }, [loading, info, autoSpeedtestDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopSpeedtest = () => {
     downloadControllers.current.forEach((c) => c.abort());

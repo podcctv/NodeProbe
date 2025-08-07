@@ -39,6 +39,7 @@
                 <tr>
                     <th><input type="checkbox" id="selectAll"></th>
                     <th>ID</th>
+                    <th>Time</th>
                     <th>Client IP</th>
                     <th>Location</th>
                     <th>ASN</th>
@@ -82,6 +83,7 @@ async function loadRecords(page = 1) {
         tr.innerHTML = `
             <td><input type="checkbox" value="${rec.id}"></td>
             <td>${rec.id}</td>
+            <td>${rec.time_hour || ''}</td>
             <td>${rec.client_ip || ''}</td>
             <td>${rec.location || ''}</td>
             <td>${rec.asn || ''}</td>
@@ -178,8 +180,8 @@ document.getElementById('nextPage').addEventListener('click', () => {
 
 document.getElementById('exportExcel').addEventListener('click', () => {
     if (!currentRecords.length) return;
-    const header = ['Client IP','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Single DL(Mbps)','Single UL(Mbps)','Multi DL(Mbps)','Multi UL(Mbps)','Target'];
-    const rows = currentRecords.map(r => [r.client_ip || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.single_dl_mbps ?? '', r.single_ul_mbps ?? '', r.multi_dl_mbps ?? '', r.multi_ul_mbps ?? '', r.test_target || '']);
+    const header = ['Client IP','Time','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Single DL(Mbps)','Single UL(Mbps)','Multi DL(Mbps)','Multi UL(Mbps)','Target'];
+    const rows = currentRecords.map(r => [r.client_ip || '', r.time_hour || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.single_dl_mbps ?? '', r.single_ul_mbps ?? '', r.multi_dl_mbps ?? '', r.multi_ul_mbps ?? '', r.test_target || '']);
     const csv = [header.join(','), ...rows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);

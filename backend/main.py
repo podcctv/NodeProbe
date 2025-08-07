@@ -443,9 +443,14 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
     if existing:
         for key, value in data.items():
             setattr(existing, key, value)
-        existing.timestamp = datetime.utcnow()
+        now = datetime.utcnow()
+        existing.timestamp = now
+        existing.time_hour = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
         db_record = existing
     else:
+        now = datetime.utcnow()
+        data["timestamp"] = now
+        data["time_hour"] = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
         db_record = models.TestRecord(**data)
         db.add(db_record)
 
@@ -621,12 +626,15 @@ def create_test(
         if data.get("test_target"):
             existing.test_target = data["test_target"]
 
-        existing.timestamp = datetime.utcnow()
+        now = datetime.utcnow()
+        existing.timestamp = now
+        existing.time_hour = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
 
         db.commit()
         db.refresh(existing)
         return existing
 
+    now = datetime.utcnow()
     mapped = {
         "client_ip": client_ip,
         "user_agent": user_agent,
@@ -639,6 +647,8 @@ def create_test(
         "mtr_result": data.get("mtr_result"),
         "iperf_result": data.get("iperf_result"),
         "test_target": data.get("test_target"),
+        "timestamp": now,
+        "time_hour": now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p"),
     }
     if speedtest_type == "single":
         mapped["single_dl_mbps"] = dl
@@ -686,6 +696,9 @@ def admin_create_test(
 ):
     data = record.dict()
     data["asn"] = normalize_asn(data.get("asn"))
+    now = datetime.utcnow()
+    data.setdefault("timestamp", now)
+    data.setdefault("time_hour", now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p"))
     existing = (
         db.query(models.TestRecord)
         .filter(models.TestRecord.client_ip == data.get("client_ip"))
