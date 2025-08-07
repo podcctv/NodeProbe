@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from datetime import datetime, timezone, timedelta
 
 import re
@@ -336,6 +335,7 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
             func.max(models.TestRecord.location).label("location"),
             func.max(models.TestRecord.asn).label("asn"),
             func.max(models.TestRecord.isp).label("isp"),
+            func.avg(models.TestRecord.ping_ms).label("ping_ms"),
             func.min(models.TestRecord.ping_min_ms).label("ping_min_ms"),
             func.avg(models.TestRecord.ping_ms).label("ping_ms"),
             func.max(models.TestRecord.ping_max_ms).label("ping_max_ms"),
