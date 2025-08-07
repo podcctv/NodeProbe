@@ -273,22 +273,54 @@ function App() {
 
         <div className="space-y-2">
           <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-lg mb-2 text-center">Single Thread</h3>
-              {singleRecords.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 text-left">IP</th>
-                        <th className="px-2 py-1 text-left">Location</th>
-                        <th className="px-2 py-1 text-left">ASN</th>
-                        <th className="px-2 py-1 text-left">ISP</th>
-                        <th className="px-2 py-1 text-left">Ping</th>
-                        <th className="px-2 py-1 text-left">Download</th>
-                        <th className="px-2 py-1 text-left">Upload</th>
-                        <th className="px-2 py-1 text-left">Recorded</th>
+
+          {records.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-1 text-left">IP</th>
+                    <th className="px-2 py-1 text-left">Location</th>
+                    <th className="px-2 py-1 text-left">ASN</th>
+                    <th className="px-2 py-1 text-left">ISP</th>
+                    <th className="px-2 py-1 text-left">Ping</th>
+                    <th className="px-2 py-1 text-left">Download</th>
+                    <th className="px-2 py-1 text-left">Upload</th>
+                    <th className="px-2 py-1 text-left">Recorded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records
+                    .slice(0, 10)
+                    .map((r) => (
+                      <tr key={r.id}>
+                        <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
+                        <td className="px-2 py-1">
+                          {r.location && r.location !== 'Unknown'
+                            ? r.location
+                            : 'Unknown'}
+                        </td>
+                        <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
+                        <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
+                        <td className="px-2 py-1">
+                          {typeof r.ping_ms === 'number'
+                            ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
+                            : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {typeof r.download_mbps === 'number'
+                            ? `${r.download_mbps.toFixed(2)} Mbps`
+                            : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {typeof r.upload_mbps === 'number'
+                            ? `${r.upload_mbps.toFixed(2)} Mbps`
+                            : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {new Date(r.timestamp).toLocaleString()}
+                        </td>
+
                       </tr>
                     </thead>
                     <tbody>

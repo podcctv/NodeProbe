@@ -323,44 +323,43 @@ def api_root():
 
 @app.get("/tests", response_model=schemas.TestsResponse)
 def read_tests(request: Request, db: Session = Depends(get_db)):
-    """Return aggregated test records for the last ten minutes.
+    """Return the latest test record for up to ten unique client IPs.
 
-    Multiple tests from the same ``client_ip`` and ``speedtest_type`` within
-    the last ten minutes are collapsed into a single entry with average
-    ``ping_ms``, ``download_mbps`` and ``upload_mbps`` values computed directly
-    in the database.  The most recent ``timestamp`` for each group is retained
-    so that results remain chronologically ordered.
+
+    The most recent record for each distinct ``client_ip`` is selected and the
+    results are ordered by ``timestamp`` in descending order. Only the latest
+    ten IPs are returned to keep the response size manageable for the dashboard
+    interface.
+
     """
 
-    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
-    q = (
+    subq = (
         db.query(
-            func.max(models.TestRecord.id).label("id"),
             models.TestRecord.client_ip,
-            func.max(models.TestRecord.location).label("location"),
-            func.max(models.TestRecord.asn).label("asn"),
-            func.max(models.TestRecord.isp).label("isp"),
-            func.avg(models.TestRecord.ping_ms).label("ping_ms"),
-            func.min(models.TestRecord.ping_min_ms).label("ping_min_ms"),
-            func.avg(models.TestRecord.ping_ms).label("ping_ms"),
-            func.max(models.TestRecord.ping_max_ms).label("ping_max_ms"),
-            func.avg(models.TestRecord.download_mbps).label("download_mbps"),
-            func.avg(models.TestRecord.upload_mbps).label("upload_mbps"),
-            func.max(models.TestRecord.timestamp).label("timestamp"),
-            func.max(models.TestRecord.test_target).label("test_target"),
-            func.max(models.TestRecord.speedtest_type).label("speedtest_type"),
+
+            func.max(models.TestRecord.timestamp).label("latest_ts"),
         )
-        .filter(models.TestRecord.timestamp >= ten_min_ago)
-        .group_by(models.TestRecord.client_ip, models.TestRecord.speedtest_type)
-        .order_by(func.max(models.TestRecord.timestamp).desc())
+        .group_by(models.TestRecord.client_ip)
+        .subquery()
     )
 
-    rows = q.all()
+    rows = (
+        db.query(models.TestRecord)
+        .join(
+            subq,
+            (models.TestRecord.client_ip == subq.c.client_ip)
+            & (models.TestRecord.timestamp == subq.c.latest_ts),
+        )
+        .order_by(models.TestRecord.timestamp.desc())
+        .limit(10)
+        .all()
+
+    )
+
     if not rows:
         return {"message": "No recent test records found", "records": []}
 
-    records = [schemas.TestRecord.model_validate(dict(row._mapping)) for row in rows]
-    return {"records": records}
+    return {"records": rows}
 
 
 @app.post("/tests", response_model=schemas.TestRecord)

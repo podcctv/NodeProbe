@@ -104,7 +104,9 @@ def test_create_speedtest_record():
     assert data["download_mbps"] == 10.0
 
 
-def test_recent_tests_are_aggregated_by_ip_and_type():
+
+def test_recent_tests_return_latest_ten_ips():
+
     from datetime import datetime, timedelta
     from backend.database import SessionLocal
     from backend.models import TestRecord
@@ -113,50 +115,25 @@ def test_recent_tests_are_aggregated_by_ip_and_type():
     try:
         db.query(TestRecord).delete()
         now = datetime.utcnow()
-        records = [
+        # Create 12 unique IPs with decreasing timestamps
+        for i in range(12):
+            db.add(
+                TestRecord(
+                    client_ip=f"1.1.1.{i}",
+                    ping_ms=i,
+                    timestamp=now - timedelta(minutes=i),
+                )
+            )
+        # Older duplicate for the most recent IP to ensure latest is chosen
+        db.add(
             TestRecord(
-                client_ip="1.1.1.1",
-                speedtest_type="single",
-                ping_ms=10,
-                download_mbps=20,
-                upload_mbps=5,
-                timestamp=now - timedelta(minutes=5),
-            ),
-            TestRecord(
-                client_ip="1.1.1.1",
-                speedtest_type="single",
-                ping_ms=20,
-                download_mbps=30,
-                upload_mbps=15,
-                timestamp=now - timedelta(minutes=4),
-            ),
-            TestRecord(
-                client_ip="1.1.1.1",
-                speedtest_type="multi",
-                ping_ms=25,
-                download_mbps=50,
-                upload_mbps=25,
-                timestamp=now - timedelta(minutes=3),
-            ),
-            TestRecord(
-                client_ip="2.2.2.2",
-                speedtest_type="single",
-                ping_ms=50,
-                download_mbps=60,
-                upload_mbps=70,
-                timestamp=now - timedelta(minutes=6),
-            ),
-            # Outside the 10 minute window and should be ignored
-            TestRecord(
-                client_ip="1.1.1.1",
-                speedtest_type="single",
-                ping_ms=30,
-                download_mbps=40,
-                upload_mbps=25,
-                timestamp=now - timedelta(minutes=15),
-            ),
-        ]
-        db.add_all(records)
+
+                client_ip="1.1.1.0",
+                ping_ms=999,
+                timestamp=now - timedelta(minutes=30),
+            )
+        )
+
         db.commit()
     finally:
         db.close()
@@ -164,25 +141,18 @@ def test_recent_tests_are_aggregated_by_ip_and_type():
     res = client.get("/tests")
     assert res.status_code == 200
     data = res.json()
-    assert len(data["records"]) == 3
 
-    rec_single = next(
-        r
-        for r in data["records"]
-        if r["client_ip"] == "1.1.1.1" and r["speedtest_type"] == "single"
-    )
-    assert abs(rec_single["ping_ms"] - 15) < 0.01
-    assert abs(rec_single["download_mbps"] - 25) < 0.01
-    assert abs(rec_single["upload_mbps"] - 10) < 0.01
+    assert len(data["records"]) == 10
 
-    rec_multi = next(
-        r
-        for r in data["records"]
-        if r["client_ip"] == "1.1.1.1" and r["speedtest_type"] == "multi"
-    )
-    assert abs(rec_multi["ping_ms"] - 25) < 0.01
-    assert abs(rec_multi["download_mbps"] - 50) < 0.01
-    assert abs(rec_multi["upload_mbps"] - 25) < 0.01
+    ips = [r["client_ip"] for r in data["records"]]
+    # Only the ten most recent IPs should be returned
+    assert "1.1.1.10" not in ips
+    assert "1.1.1.11" not in ips
+
+    # Ensure the latest record for an IP is returned
+    rec = next(r for r in data["records"] if r["client_ip"] == "1.1.1.0")
+    assert rec["ping_ms"] == 0
+
 
 
 def test_create_test_merges_recent_records():
