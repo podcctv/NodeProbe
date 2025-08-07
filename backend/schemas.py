@@ -17,6 +17,10 @@ class TestRecordCreate(TestRecordBase):
     pass
 
 
+class TestRecordUpdate(TestRecordBase):
+    pass
+
+
 class TestRecord(TestRecordBase):
     id: int
     timestamp: datetime
@@ -36,3 +40,7 @@ class TestsResponse(BaseModel):
 
     message: str | None = None
     records: list[TestRecord] = []
+
+
+class IDList(BaseModel):
+    ids: list[int]
