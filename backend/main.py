@@ -445,12 +445,20 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
             setattr(existing, key, value)
         now = datetime.utcnow()
         existing.timestamp = now
-        existing.time_hour = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
+        existing.time_hour = (
+            to_shanghai(now)
+            .replace(minute=0, second=0, microsecond=0)
+            .strftime("%I:00%p")
+        )
         db_record = existing
     else:
         now = datetime.utcnow()
         data["timestamp"] = now
-        data["time_hour"] = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
+        data["time_hour"] = (
+            to_shanghai(now)
+            .replace(minute=0, second=0, microsecond=0)
+            .strftime("%I:00%p")
+        )
         db_record = models.TestRecord(**data)
         db.add(db_record)
 
@@ -628,7 +636,11 @@ def create_test(
 
         now = datetime.utcnow()
         existing.timestamp = now
-        existing.time_hour = now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p")
+        existing.time_hour = (
+            to_shanghai(now)
+            .replace(minute=0, second=0, microsecond=0)
+            .strftime("%I:00%p")
+        )
 
         db.commit()
         db.refresh(existing)
@@ -648,7 +660,11 @@ def create_test(
         "iperf_result": data.get("iperf_result"),
         "test_target": data.get("test_target"),
         "timestamp": now,
-        "time_hour": now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p"),
+        "time_hour": (
+            to_shanghai(now)
+            .replace(minute=0, second=0, microsecond=0)
+            .strftime("%I:00%p")
+        ),
     }
     if speedtest_type == "single":
         mapped["single_dl_mbps"] = dl
@@ -698,7 +714,14 @@ def admin_create_test(
     data["asn"] = normalize_asn(data.get("asn"))
     now = datetime.utcnow()
     data.setdefault("timestamp", now)
-    data.setdefault("time_hour", now.replace(minute=0, second=0, microsecond=0).strftime("%I:00%p"))
+    data.setdefault(
+        "time_hour",
+        (
+            to_shanghai(now)
+            .replace(minute=0, second=0, microsecond=0)
+            .strftime("%I:00%p")
+        ),
+    )
     existing = (
         db.query(models.TestRecord)
         .filter(models.TestRecord.client_ip == data.get("client_ip"))
