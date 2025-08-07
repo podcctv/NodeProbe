@@ -202,13 +202,6 @@ function App() {
       setPingOutput('Ping failed');
     }
   };
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
-        <div>Running tests...</div>
-      </div>
-    );
-  }
 
   const runTraceroute = async (host: string, record = false) => {
     setTraceOutput('Running...');

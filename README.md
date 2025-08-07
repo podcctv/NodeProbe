@@ -50,6 +50,17 @@ Access example:
 http://your-server-ip:8380
 ```
 
+### Admin login
+
+On first start the backend creates a default administrator account:
+
+- Username: `NodeProbe`
+- Password: `nodeprobe` followed by the last segment of your server's **public** IP address
+  (e.g. public IP `203.0.113.5` -> password `nodeprobe5`)
+
+If the server cannot determine its public IP, you can provide it via the `SERVER_IP`
+environment variable.
+
 ### Using the deploy script
 
 The repository provides a `deploy.sh` script for one‑click deployment or updates. The script automatically switches to its directory and can be executed from anywhere:
