@@ -44,6 +44,8 @@ docker compose up -d
 ```
 
 默认数据存储于 `/opt/NodeProbe/data/`。
+可通过设置 `DATA_DIR` 环境变量自定义该目录，运行 Docker Compose 或
+`deploy.sh` 时会自动使用此路径。
 
 访问示例：
 
@@ -75,6 +77,7 @@ docker run -d --name nodeprobe -p 8380:8380 \
 ```
 
 默认数据会保存到 `/opt/NodeProbe/data/`。
+同样可通过 `DATA_DIR` 环境变量进行更改。
 
 ## 更新日志
 

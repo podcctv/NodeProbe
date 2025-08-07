@@ -44,6 +44,8 @@ docker compose up -d
 ```
 
 Default data will be stored under `/opt/NodeProbe/data/`.
+The directory can be customised by setting the `DATA_DIR` environment variable
+before running Docker Compose or `deploy.sh`.
 
 Access example:
 
