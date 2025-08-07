@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import requests
+import subprocess
 from . import models, schemas, database
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -66,3 +67,20 @@ def create_test(
     db.commit()
     db.refresh(db_record)
     return db_record
+
+
+@app.get("/ping")
+def run_ping(host: str, count: int = 4):
+    """Run a ping test against a host and return the raw output."""
+    try:
+        result = subprocess.run(
+            ["ping", "-c", str(count), host],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            return {"output": result.stdout}
+        return {"error": result.stderr or "Ping failed"}
+    except Exception as exc:
+        return {"error": str(exc)}
