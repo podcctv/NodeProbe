@@ -104,8 +104,7 @@ def create_default_user():
     try:
         user = db.query(models.User).first()
         if not user:
-            last_octet = host_ip.split(".")[-1]
-            password = os.environ.get("ADMIN_PASSWORD") or f"nodeprobe{last_octet}"
+            password = get_default_password(host_ip)
             user = models.User(
                 username="NodeProbe",
                 password_hash=hash_password(password),
@@ -144,6 +143,20 @@ def verify_password(password: str, stored: str) -> bool:
         return False
     check = hashlib.sha256((salt + password).encode()).hexdigest()
     return hmac.compare_digest(check, hashed)
+
+
+def get_default_password(host_ip: str | None = None) -> str:
+    """Return the default admin password based on the host IP or env vars."""
+
+    if not host_ip:
+        host_ip = os.environ.get("SERVER_IP")
+        if not host_ip:
+            try:
+                host_ip = requests.get("https://api.ipify.org", timeout=5).text.strip()
+            except Exception:
+                host_ip = socket.gethostbyname(socket.gethostname())
+    last_octet = host_ip.split(".")[-1]
+    return os.environ.get("ADMIN_PASSWORD") or f"nodeprobe{last_octet}"
 
 # Allow the frontend dev server or any origin to access the API
 app.add_middleware(
@@ -220,8 +233,16 @@ def _get_client_ip(request: Request) -> str:
 
 
 @app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
-def login_form(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+def login_form(request: Request, db: Session = Depends(get_db)):
+    user = db.query(models.User).first()
+    default_password = None
+    if user:
+        default_guess = get_default_password()
+        if verify_password(default_guess, user.password_hash):
+            default_password = default_guess
+    return templates.TemplateResponse(
+        "login.html", {"request": request, "default_password": default_password}
+    )
 
 
 @app.get("/admin/register", response_class=HTMLResponse, include_in_schema=False)
@@ -271,8 +292,6 @@ def login(
             status_code=400,
         )
     request.session["user_id"] = user.id
-    if user.must_change_password:
-        return RedirectResponse("/admin/password", status_code=303)
     return RedirectResponse("/admin", status_code=303)
 
 
@@ -303,7 +322,7 @@ def change_password(
 
 
 @app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
-def admin_page(request: Request, user: models.User = Depends(require_active_user)):
+def admin_page(request: Request, user: models.User = Depends(get_current_user)):
     return templates.TemplateResponse("admin.html", {"request": request, "user": user})
 
 

@@ -7,6 +7,9 @@
 <body>
     <h1>NodeProbe Admin Login</h1>
     {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    {% if default_password %}
+    <p>Default Password: {{ default_password }}</p>
+    {% endif %}
     <form method="post">
         <label>Username: <input name="username" value="NodeProbe" /></label><br>
         <label>Password: <input type="password" name="password" /></label><br>

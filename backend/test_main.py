@@ -98,7 +98,9 @@ def test_register_and_login_requires_password_change():
         follow_redirects=False,
     )
     assert res_login.status_code == 303
-    assert res_login.headers["location"] == "/admin/password"
+    assert res_login.headers["location"] == "/admin"
+    res_admin = client.get("/admin")
+    assert "Change Password" in res_admin.text
 
 def test_create_speedtest_record():
     payload = {
