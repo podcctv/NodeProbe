@@ -73,7 +73,7 @@
     <button onclick="downloadTraceroute()">Download</button>
     <pre id="trace-output"></pre>
 
-    <h2>Speed Test</h2>
+    <h2>Speed Test <span id="download-speed"></span></h2>
     <button onclick="runSpeedtest()">Run Speed Test</button>
     <div>
       <div>Download Progress</div>
@@ -183,11 +183,13 @@
       }
 
       async function runSpeedtest() {
+        const multiThreads = 8;
         const single = await runSpeedtestOnce(1, 'single');
-        const multi = await runSpeedtestOnce(4, 'multi');
+        const multi = await runSpeedtestOnce(multiThreads, 'multi');
         document.getElementById('speed-output').textContent =
           `Single Thread - Download: ${single.down} Mbps Upload: ${single.up} Mbps\n` +
-          `Multi Thread - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
+          `Multi Thread (${multiThreads}) - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
+        document.getElementById('download-speed').textContent = `- ${multi.down} Mbps`;
       }
     </script>
   </body>
