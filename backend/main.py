@@ -316,14 +316,29 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
         data["ping_ms"] = ping_ms
 
     try:
-        resp = requests.get(f"https://ipapi.co/{client_ip}/json/")
+        resp = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=5)
         if resp.ok:
             geo = resp.json()
-            data["location"] = f"{geo.get('city')}, {geo.get('country_name')}"
-            data["asn"] = geo.get("asn")
-            data["isp"] = geo.get("org")
+            if not geo.get("error"):
+                data["location"] = f"{geo.get('city')}, {geo.get('country_name')}"
+                data["asn"] = geo.get("asn")
+                data["isp"] = geo.get("org")
+            else:
+                raise ValueError("ipapi error")
+        else:
+            raise ValueError("ipapi error")
     except Exception:
-        pass
+        try:
+            resp = requests.get(f"https://ipwho.is/{client_ip}", timeout=5)
+            if resp.ok:
+                geo = resp.json()
+                if geo.get("success"):
+                    data["location"] = f"{geo.get('city')}, {geo.get('country')}"
+                    conn = geo.get("connection", {})
+                    data["asn"] = conn.get("asn")
+                    data["isp"] = conn.get("isp") or conn.get("org")
+        except Exception:
+            pass
 
     db_record = models.TestRecord(**data)
     db.add(db_record)
