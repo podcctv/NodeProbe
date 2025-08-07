@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 import re
 import os
@@ -563,14 +563,9 @@ def create_test(
         data.setdefault("ping_min_ms", data["ping_ms"])
         data.setdefault("ping_max_ms", data["ping_ms"])
 
-    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
     speedtest_type = data.get("speedtest_type")
-    query = (
-        db.query(models.TestRecord)
-        .filter(
-            models.TestRecord.client_ip == client_ip,
-            models.TestRecord.timestamp >= ten_min_ago,
-        )
+    query = db.query(models.TestRecord).filter(
+        models.TestRecord.client_ip == client_ip
     )
     if speedtest_type is None:
         query = query.filter(models.TestRecord.speedtest_type.is_(None))
