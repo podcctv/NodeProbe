@@ -8,6 +8,9 @@ class TestRecordBase(BaseModel):
     asn: str | None = None
     isp: str | None = None
     ping_ms: float | None = None
+    download_mbps: float | None = None
+    upload_mbps: float | None = None
+    speedtest_type: str | None = None
     mtr_result: str | None = None
     iperf_result: str | None = None
     test_target: str | None = None
