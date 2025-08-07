@@ -17,6 +17,7 @@ from fastapi import (
     Form,
     HTTPException,
     status,
+    Query,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
@@ -639,15 +640,25 @@ def create_test(
 
 
 @app.get(
-    "/admin/tests", response_model=schemas.TestsResponse, include_in_schema=False
+    "/admin/tests", response_model=schemas.AdminTestsResponse, include_in_schema=False
 )
 def admin_read_tests(
-    db: Session = Depends(get_db), user: models.User = Depends(require_active_user)
+    db: Session = Depends(get_db),
+    user: models.User = Depends(require_active_user),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
 ):
-    records = db.query(models.TestRecord).all()
+    total = db.query(models.TestRecord).count()
+    records = (
+        db.query(models.TestRecord)
+        .order_by(models.TestRecord.timestamp.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     for r in records:
         r.asn = normalize_asn(r.asn)
-    return {"records": records}
+    return {"records": records, "total": total}
 
 
 @app.post(

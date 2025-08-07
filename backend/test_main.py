@@ -18,7 +18,7 @@ def test_homepage_creates_record_and_returns_html():
 def test_homepage_handles_null_client_ip():
     """Ensure homepage renders even if a test record has a NULL client_ip."""
     from backend.database import SessionLocal
-    from backend.models import TestRecord
+    from backend.models import TestRecord, User
 
     db = SessionLocal()
     try:
@@ -128,7 +128,7 @@ def test_recent_tests_return_latest_ten_ips():
 
     from datetime import datetime, timedelta
     from backend.database import SessionLocal
-    from backend.models import TestRecord
+    from backend.models import TestRecord, User
 
     db = SessionLocal()
     try:
@@ -176,7 +176,7 @@ def test_recent_tests_return_latest_ten_ips():
 
 def test_create_test_merges_recent_records():
     from backend.database import SessionLocal
-    from backend.models import TestRecord
+    from backend.models import TestRecord, User
 
     db = SessionLocal()
     try:
@@ -304,4 +304,46 @@ def test_asn_normalization_and_merge():
     assert abs(rec["ping_ms"] - 15) < 0.01
     assert abs(rec["ping_min_ms"] - 15) < 0.01
     assert abs(rec["ping_max_ms"] - 15) < 0.01
+
+
+def test_admin_tests_pagination():
+    import uuid, re
+    from datetime import datetime, timedelta
+    from backend.database import SessionLocal
+    from backend.models import TestRecord, User
+
+    username = f"user{uuid.uuid4().hex}"
+    res = client.post("/admin/register", data={"username": username})
+    m = re.search(r"Default Password: ([^<]+)", res.text)
+    assert m, res.text
+    password = m.group(1)
+    client.post(
+        "/admin/login",
+        data={"username": username, "password": password},
+        follow_redirects=False,
+    )
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter_by(username=username).first()
+        user.must_change_password = False
+        db.commit()
+        db.query(TestRecord).delete()
+        now = datetime.utcnow()
+        for i in range(250):
+            db.add(TestRecord(client_ip=f"2.2.2.{i}", timestamp=now - timedelta(seconds=i)))
+        db.commit()
+    finally:
+        db.close()
+
+    res = client.get("/admin/tests")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] == 250
+    assert len(data["records"]) == 100
+
+    res2 = client.get("/admin/tests", params={"offset": 200, "limit": 100})
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert len(data2["records"]) == 50
 
