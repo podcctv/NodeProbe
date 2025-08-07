@@ -6,6 +6,7 @@ import secrets
 import hashlib
 import hmac
 import logging
+import socket
 
 from fastapi import (
     FastAPI,
@@ -75,7 +76,9 @@ def create_default_user():
     db = database.SessionLocal()
     try:
         if not db.query(models.User).first():
-            password = secrets.token_urlsafe(8)
+            host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
+            last_octet = host_ip.split(".")[-1]
+            password = f"nodeprobe{last_octet}"
             user = models.User(
                 username="NodeProbe",
                 password_hash=hash_password(password),
@@ -165,6 +168,38 @@ def _ping(host: str) -> float | None:
 @app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
 def login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.get("/admin/register", response_class=HTMLResponse, include_in_schema=False)
+def register_form(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@app.post("/admin/register", include_in_schema=False)
+def register(
+    request: Request,
+    username: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if db.query(models.User).filter_by(username=username).first():
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Username already exists"},
+            status_code=400,
+        )
+    ip = request.client.host or "0.0.0.0"
+    last = ip.split(".")[-1]
+    password = f"nodeprobe{last}"
+    user = models.User(
+        username=username,
+        password_hash=hash_password(password),
+    )
+    db.add(user)
+    db.commit()
+    return templates.TemplateResponse(
+        "register_success.html",
+        {"request": request, "username": username, "password": password},
+    )
 
 
 @app.post("/admin/login", include_in_schema=False)
