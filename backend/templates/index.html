@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NodeProbe</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #111;
+        color: #0f0;
+        padding: 1rem;
+      }
+      h1, h2 {
+        color: #0f0;
+      }
+      input, button {
+        padding: 0.4rem;
+        margin: 0.2rem;
+      }
+      pre {
+        background: #000;
+        padding: 0.5rem;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Your Connection Info</h1>
+    <ul>
+      <li>IP: {{ info.client_ip }}</li>
+      {% if info.location %}<li>Location: {{ info.location }}</li>{% endif %}
+      {% if info.asn %}<li>ASN: {{ info.asn }}</li>{% endif %}
+      {% if info.isp %}<li>ISP: {{ info.isp }}</li>{% endif %}
+      <li>Recorded at: {{ info.timestamp }}</li>
+    </ul>
+
+    <h2>Recent Tests</h2>
+    <ul>
+      {% for r in records %}
+      <li>{{ r.client_ip }} - {{ r.location or 'Unknown' }} - {{ r.timestamp }}</li>
+      {% endfor %}
+    </ul>
+
+    <h2>Manual Ping Test</h2>
+    <input id="host" value="8.8.8.8" />
+    <button onclick="runPing()">Ping</button>
+    <pre id="ping-output"></pre>
+
+    <script>
+      async function runPing() {
+        const host = document.getElementById('host').value;
+        const res = await fetch('/ping?host=' + encodeURIComponent(host));
+        const data = await res.json();
+        document.getElementById('ping-output').textContent = data.output || data.error || 'No output';
+      }
+    </script>
+  </body>
+</html>
