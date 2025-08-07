@@ -205,3 +205,59 @@ def test_create_test_merges_recent_records():
     finally:
         db.close()
 
+
+def test_multi_speedtest_preserves_single_record():
+    from backend.database import SessionLocal
+    from backend.models import TestRecord
+
+    db = SessionLocal()
+    try:
+        db.query(TestRecord).delete()
+        db.commit()
+    finally:
+        db.close()
+
+    headers = {"X-Forwarded-For": "9.9.9.9"}
+
+    # Create initial single-thread record
+    res_single = client.post(
+        "/tests",
+        json={
+            "speedtest_type": "single",
+            "download_mbps": 10,
+            "upload_mbps": 5,
+        },
+        headers=headers,
+    )
+    assert res_single.status_code == 200
+
+    # Create two multi-thread records to trigger averaging
+    client.post(
+        "/tests",
+        json={
+            "speedtest_type": "multi",
+            "download_mbps": 40,
+            "upload_mbps": 20,
+        },
+        headers=headers,
+    )
+    client.post(
+        "/tests",
+        json={
+            "speedtest_type": "multi",
+            "download_mbps": 60,
+            "upload_mbps": 30,
+        },
+        headers=headers,
+    )
+
+    # Ensure both single and averaged multi results exist
+    res = client.get("/tests")
+    assert res.status_code == 200
+    data = res.json()
+    records = [r for r in data["records"] if r["client_ip"] == "9.9.9.9"]
+    assert len(records) == 2
+    speeds = {r["speedtest_type"]: r for r in records}
+    assert speeds["single"]["download_mbps"] == 10
+    assert abs(speeds["multi"]["download_mbps"] - 50) < 0.01
+

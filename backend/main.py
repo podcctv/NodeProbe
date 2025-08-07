@@ -408,37 +408,52 @@ def api_root():
 
 @app.get("/tests", response_model=schemas.TestsResponse)
 def read_tests(request: Request, db: Session = Depends(get_db)):
-    """Return the latest test record for up to ten unique client IPs.
+    """Return recent test records for up to ten unique client IPs.
 
-
-    The most recent record for each distinct ``client_ip`` is selected and the
-    results are ordered by ``timestamp`` in descending order. Only the latest
-    ten IPs are returned to keep the response size manageable for the dashboard
-    interface.
+    Each IP may have multiple ``speedtest_type`` variants (e.g. single or multi
+    thread).  The latest record for each combination of ``client_ip`` and
+    ``speedtest_type`` is selected.  We then return records for the ten most
+    recently active IPs, including all of their available test variants.
 
     """
 
-    subq = (
+    # Latest record per (client_ip, speedtest_type)
+    latest_per_type = (
         db.query(
             models.TestRecord.client_ip,
-
+            models.TestRecord.speedtest_type,
             func.max(models.TestRecord.timestamp).label("latest_ts"),
         )
-        .group_by(models.TestRecord.client_ip)
+        .group_by(models.TestRecord.client_ip, models.TestRecord.speedtest_type)
+        .subquery()
+    )
+
+    # Determine the ten most recent client IPs
+    top_ips = (
+        db.query(
+            latest_per_type.c.client_ip,
+            func.max(latest_per_type.c.latest_ts).label("latest_ts"),
+        )
+        .group_by(latest_per_type.c.client_ip)
+        .order_by(func.max(latest_per_type.c.latest_ts).desc())
+        .limit(10)
         .subquery()
     )
 
     rows = (
         db.query(models.TestRecord)
         .join(
-            subq,
-            (models.TestRecord.client_ip == subq.c.client_ip)
-            & (models.TestRecord.timestamp == subq.c.latest_ts),
+            latest_per_type,
+            (models.TestRecord.client_ip == latest_per_type.c.client_ip)
+            & (
+                func.coalesce(models.TestRecord.speedtest_type, "")
+                == func.coalesce(latest_per_type.c.speedtest_type, "")
+            )
+            & (models.TestRecord.timestamp == latest_per_type.c.latest_ts),
         )
+        .join(top_ips, models.TestRecord.client_ip == top_ips.c.client_ip)
         .order_by(models.TestRecord.timestamp.desc())
-        .limit(10)
         .all()
-
     )
 
     if not rows:
@@ -456,7 +471,7 @@ def create_test(
 ):
     data = record.dict()
     client_ip = _get_client_ip(request)
-    data.setdefault("client_ip", client_ip)
+    data["client_ip"] = data.get("client_ip") or client_ip
 
     if not data.get("location") or not data.get("asn") or not data.get("isp"):
         try:
@@ -524,29 +539,39 @@ def create_test(
         data.setdefault("ping_max_ms", data["ping_ms"])
 
     ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
-    existing_records = (
+    speedtest_type = data.get("speedtest_type")
+    query = (
         db.query(models.TestRecord)
         .filter(
             models.TestRecord.client_ip == client_ip,
             models.TestRecord.timestamp >= ten_min_ago,
         )
-        .all()
     )
+    if speedtest_type is None:
+        query = query.filter(models.TestRecord.speedtest_type.is_(None))
+    else:
+        query = query.filter(models.TestRecord.speedtest_type == speedtest_type)
+    existing_records = query.all()
 
     if existing_records:
-        values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
-        if data.get("ping_ms") is not None:
-            values_ping.append(data["ping_ms"])
-        values_ping_min = [
-            r.ping_min_ms for r in existing_records if r.ping_min_ms is not None
-        ]
-        if data.get("ping_min_ms") is not None:
-            values_ping_min.append(data["ping_min_ms"])
-        values_ping_max = [
-            r.ping_max_ms for r in existing_records if r.ping_max_ms is not None
-        ]
-        if data.get("ping_max_ms") is not None:
-            values_ping_max.append(data["ping_max_ms"])
+        if skip_ping and data.get("ping_ms") is None:
+            values_ping = []
+            values_ping_min = []
+            values_ping_max = []
+        else:
+            values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
+            if data.get("ping_ms") is not None:
+                values_ping.append(data["ping_ms"])
+            values_ping_min = [
+                r.ping_min_ms for r in existing_records if r.ping_min_ms is not None
+            ]
+            if data.get("ping_min_ms") is not None:
+                values_ping_min.append(data["ping_min_ms"])
+            values_ping_max = [
+                r.ping_max_ms for r in existing_records if r.ping_max_ms is not None
+            ]
+            if data.get("ping_max_ms") is not None:
+                values_ping_max.append(data["ping_max_ms"])
         values_down = [r.download_mbps for r in existing_records if r.download_mbps is not None]
         if data.get("download_mbps") is not None:
             values_down.append(data["download_mbps"])
