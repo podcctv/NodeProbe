@@ -72,6 +72,15 @@ let currentRecords = [];
 async function loadRecords(page = 1) {
     const offset = (page - 1) * pageSize;
     const res = await fetch(`/admin/tests?offset=${offset}&limit=${pageSize}`);
+    if (res.status === 403) {
+        // User is required to change the default password before accessing data
+        window.location.href = '/admin/password';
+        return;
+    }
+    if (!res.ok) {
+        console.error('Failed to load records', res.status);
+        return;
+    }
     const data = await res.json();
     const tbody = document.querySelector('#recordsTable tbody');
     tbody.innerHTML = '';
