@@ -27,24 +27,35 @@
         border-collapse: collapse;
         padding: 0.3rem;
       }
+      .banner {
+        text-align: center;
+      }
+      .banner pre {
+        display: inline-block;
+        text-align: left;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
-    <pre style="text-align: center;">
-
+    <div class="banner">
+      <pre>
                   _
 __   ___ __  ___ | |_ _____      ___ __
 \ \ / / '_ \/ __|| __/ _ \ \ /\ / / '_ \
- \ V /| |_) \__ \| || (_) \ V  V /| | | |
+  \ V /| |_) \__ \| || (_) \ V  V /| | | |
   \_/ | .__/|___/|__\___/ \_/\_/ |_| |_|
       |_|
                  _                      _
- _ __   ___   __| | ___ _ __  _ __ ___ | |__   ___
-| '_ \ / _ \ / _` |/ _ \ '_ \| '__/ _ \| '_ \ / _ \
-| | | | (_) | (_| |  __/ |_) | | | (_) | |_) |  __/
-|_| |_|\___/ \__,_|\___| .__/|_|  \___/|_.__/ \___| 
+  _ __   ___   __| | ___ _ __  _ __ ___ | |__   ___
+ | '_ \ / _ \ / _` |/ _ \ '_ \| '__/ _ \| '_ \ / _ \
+ | | | | (_) | (_| |  __/ |_) | | | (_) | |_) |  __/
+|_| |_|\___/ \__,_|\___| .__/|_|  \___/|_.__/ \___|
+                        |_|
 
-    </pre>
+      </pre>
+    </div>
+    <h1>Your Connection Info</h1>
     <ul>
       <li>IP: {{ info.client_ip|mask_ip }}</li>
       {% if info.location %}<li>Location: {{ info.location }}</li>{% endif %}
@@ -95,6 +106,12 @@ __   ___ __  ___ | |_ _____      ___ __
     <pre id="speed-output"></pre>
 
     <script>
+      const clientInfo = {
+        client_ip: {{ info.client_ip | tojson }},
+        location: {{ info.location | tojson }},
+        asn: {{ info.asn | tojson }},
+        isp: {{ info.isp | tojson }}
+      };
       async function loadRecentTests() {
         const res = await fetch('/tests');
         const data = await res.json();
@@ -107,9 +124,9 @@ __   ___ __  ___ | |_ _____      ___ __
             r.location || '',
             r.asn || '',
             r.isp || '',
-            r.ping_ms ? `${((r.ping_min_ms ?? r.ping_ms)).toFixed(2)}/${(r.ping_ms).toFixed(2)}/${((r.ping_max_ms ?? r.ping_ms)).toFixed(2)} ms` : '',
-            r.download_mbps ? r.download_mbps.toFixed(2) : '',
-            r.upload_mbps ? r.upload_mbps.toFixed(2) : '',
+            r.ping_ms ? `${((r.ping_min_ms ?? r.ping_ms)).toFixed(2)}/${(r.ping_ms).toFixed(2)}/${((r.ping_max_ms ?? r.ping_ms)).toFixed(2)} ms` : '—',
+            r.download_mbps ? r.download_mbps.toFixed(2) : '—',
+            r.upload_mbps ? r.upload_mbps.toFixed(2) : '—',
             formatTimestamp(r.timestamp)
           ];
           cells.forEach(text => {
@@ -144,6 +161,7 @@ __   ___ __  ___ | |_ _____      ___ __
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              ...clientInfo,
               test_target: host,
               ping_ms: data.ping_ms,
               ping_min_ms: data.ping_min_ms,
@@ -227,6 +245,7 @@ __   ___ __  ___ | |_ _____      ___ __
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            ...clientInfo,
             test_target: 'speedtest',
             speedtest_type: label,
             download_mbps: parseFloat(down),
