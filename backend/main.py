@@ -246,7 +246,11 @@ def _get_client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip()
-    return request.client.host
+    # ``request.client`` may be ``None`` when running behind certain proxies or in
+    # testing environments.  Guard against this to avoid ``AttributeError``
+    # causing a 500 response.
+    client = request.client
+    return client.host if client else ""
 
 
 @app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
