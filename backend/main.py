@@ -370,8 +370,26 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
                     conn = geo.get("connection", {})
                     data["asn"] = conn.get("asn")
                     data["isp"] = conn.get("isp") or conn.get("org")
+                else:
+                    raise ValueError("ipwho error")
+            else:
+                raise ValueError("ipwho error")
         except Exception:
-            pass
+            try:
+                resp = requests.get(
+                    f"http://ip-api.com/json/{client_ip}?fields=status,country,city,as,org",
+                    timeout=5,
+                )
+                if resp.ok:
+                    geo = resp.json()
+                    if geo.get("status") == "success":
+                        data.setdefault(
+                            "location", f"{geo.get('city')}, {geo.get('country')}"
+                        )
+                        data.setdefault("asn", geo.get("as"))
+                        data.setdefault("isp", geo.get("org"))
+            except Exception:
+                pass
 
     db_record = models.TestRecord(**data)
     db.add(db_record)
@@ -442,16 +460,53 @@ def create_test(
 
     if not data.get("location") or not data.get("asn") or not data.get("isp"):
         try:
-            resp = requests.get(f"https://ipapi.co/{client_ip}/json/")
+            resp = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=5)
             if resp.ok:
                 geo = resp.json()
-                data.setdefault(
-                    "location", f"{geo.get('city')}, {geo.get('country_name')}"
-                )
-                data.setdefault("asn", geo.get("asn"))
-                data.setdefault("isp", geo.get("org"))
+                if not geo.get("error"):
+                    data.setdefault(
+                        "location", f"{geo.get('city')}, {geo.get('country_name')}"
+                    )
+                    data.setdefault("asn", geo.get("asn"))
+                    data.setdefault("isp", geo.get("org"))
+                else:
+                    raise ValueError("ipapi error")
+            else:
+                raise ValueError("ipapi error")
         except Exception:
-            pass
+            try:
+                resp = requests.get(f"https://ipwho.is/{client_ip}", timeout=5)
+                if resp.ok:
+                    geo = resp.json()
+                    if geo.get("success"):
+                        data.setdefault(
+                            "location", f"{geo.get('city')}, {geo.get('country')}"
+                        )
+                        conn = geo.get("connection", {})
+                        data.setdefault("asn", conn.get("asn"))
+                        data.setdefault(
+                            "isp", conn.get("isp") or conn.get("org")
+                        )
+                    else:
+                        raise ValueError("ipwho error")
+                else:
+                    raise ValueError("ipwho error")
+            except Exception:
+                try:
+                    resp = requests.get(
+                        f"http://ip-api.com/json/{client_ip}?fields=status,country,city,as,org",
+                        timeout=5,
+                    )
+                    if resp.ok:
+                        geo = resp.json()
+                        if geo.get("status") == "success":
+                            data.setdefault(
+                                "location", f"{geo.get('city')}, {geo.get('country')}"
+                            )
+                            data.setdefault("asn", geo.get("as"))
+                            data.setdefault("isp", geo.get("org"))
+                except Exception:
+                    pass
 
     if not data.get("ping_ms"):
         host = data.get("test_target") or client_ip
