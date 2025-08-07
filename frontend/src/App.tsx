@@ -72,16 +72,15 @@ function App() {
           body: '{}',
         });
         const data = await res.json();
-        setInfo(data);
-        if (data.client_ip) {
-          setPingTarget(data.client_ip);
-          try {
-            // Run traceroute but ignore the result for now.
-            await fetch(`/traceroute?host=${encodeURIComponent(data.client_ip)}`);
-          } catch (err) {
-            console.error('Traceroute failed', err);
+          setInfo(data);
+          if (data.client_ip) {
+            try {
+              // Run traceroute but ignore the result for now.
+              await fetch(`/traceroute?host=${encodeURIComponent(data.client_ip)}`);
+            } catch (err) {
+              console.error('Traceroute failed', err);
+            }
           }
-        }
 
         try {
           // Run a basic speed test (multi-thread download/upload).
@@ -140,6 +139,11 @@ function App() {
         console.error('Automatic tests failed', err);
       } finally {
         setLoading(false);
+      }
+    };
+
+    runTests();
+  }, []);
 
   const [traceOutput, setTraceOutput] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState({
@@ -153,40 +157,19 @@ function App() {
   const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
     null,
   );
-  const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
-  const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
-  const [speedRunning, setSpeedRunning] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMsg, setLoadingMsg] = useState('');
+    const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
+    const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
+    const [speedRunning, setSpeedRunning] = useState(false);
+    const [loadingMsg, setLoadingMsg] = useState('');
 
-  useEffect(() => {
-    runInitialTests();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadRecords = async () => {
-    try {
-      const res = await fetch('/tests');
-      const data: TestsResponse = await res.json();
-      setRecords(data.records || []);
-      if (data.records && data.records.length > 0) {
-        setInfo(data.records[0]);
-      }
-      if (data.message) {
-        setRecordsMessage(data.message);
-
-      }
-    } catch (err) {
-      console.error('Failed to load previous tests', err);
-    }
-  };
+    useEffect(() => {
+      runInitialTests();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-    runTests();
-  }, []);
-
-  const runInitialTests = async () => {
-    setLoading(true);
-    setLoadingMsg('正在进行 ping Traceroute 测试...');
+    const runInitialTests = async () => {
+      setLoading(true);
+      setLoadingMsg('正在进行 ping Traceroute 测试...');
     try {
       const res = await fetch('/tests', {
         method: 'POST',
