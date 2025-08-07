@@ -1,5 +1,6 @@
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
+
 import re
 import os
 import secrets
@@ -7,6 +8,7 @@ import hashlib
 import hmac
 import logging
 import socket
+from zoneinfo import ZoneInfo
 
 from fastapi import (
     FastAPI,
@@ -63,8 +65,15 @@ def mask_ip(ip: str | None) -> str | None:
     return ip
 
 
+def to_shanghai(ts: datetime) -> datetime:
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(ZoneInfo("Asia/Shanghai"))
+
+
 def short_ts(ts):
     if isinstance(ts, datetime):
+        ts = to_shanghai(ts)
         return ts.strftime("%Y-%m-%d %H:%M:%S")
     return ts
 
@@ -76,9 +85,10 @@ templates.env.filters["short_ts"] = short_ts
 @app.on_event("startup")
 def create_default_user():
     db = database.SessionLocal()
+    host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
     try:
-        if not db.query(models.User).first():
-            host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
+        user = db.query(models.User).first()
+        if not user:
             last_octet = host_ip.split(".")[-1]
             password = f"nodeprobe{last_octet}"
             user = models.User(
@@ -88,8 +98,13 @@ def create_default_user():
             db.add(user)
             db.commit()
             logger.info(
-                f"Initial admin credentials - username: NodeProbe password: {password}"
+                "Initial admin credentials - username: NodeProbe password: %s",
+                password,
             )
+        logger.info(
+            "Login help: visit http://%s:8380/ to access the dashboard.",
+            host_ip,
+        )
     finally:
         db.close()
 
@@ -255,13 +270,19 @@ def admin_page(request: Request, user: models.User = Depends(require_active_user
     return templates.TemplateResponse("admin.html", {"request": request, "user": user})
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-def read_root(request: Request, db: Session = Depends(get_db)):
-    """Default homepage.
+@app.get("/", include_in_schema=False)
+def root():
+    """Redirect visitors to the dashboard page."""
+    return RedirectResponse("/probe")
 
-    Records basic information about the visiting client and displays recent
-    test results.  The page also provides a simple interface for running manual
-    ping tests against a host.
+
+@app.get("/probe", response_class=HTMLResponse, include_in_schema=False)
+def probe_page(request: Request, db: Session = Depends(get_db)):
+    """Dashboard homepage.
+
+    Records basic information about the visiting client and renders the main
+    dashboard template.  Recent test data is loaded asynchronously via the
+    ``/tests`` API which aggregates records from the last ten minutes.
     """
 
     client_ip = request.client.host
@@ -286,14 +307,8 @@ def read_root(request: Request, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_record)
 
-    records = (
-        db.query(models.TestRecord)
-        .order_by(models.TestRecord.id.desc())
-        .limit(5)
-        .all()
-    )
     return templates.TemplateResponse(
-        "index.html", {"request": request, "info": db_record, "records": records}
+        "index.html", {"request": request, "info": db_record}
     )
 @app.get("/api")
 def api_root():
@@ -321,6 +336,9 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
             func.max(models.TestRecord.asn).label("asn"),
             func.max(models.TestRecord.isp).label("isp"),
             func.avg(models.TestRecord.ping_ms).label("ping_ms"),
+            func.min(models.TestRecord.ping_min_ms).label("ping_min_ms"),
+            func.avg(models.TestRecord.ping_ms).label("ping_ms"),
+            func.max(models.TestRecord.ping_max_ms).label("ping_max_ms"),
             func.avg(models.TestRecord.download_mbps).label("download_mbps"),
             func.avg(models.TestRecord.upload_mbps).label("upload_mbps"),
             func.max(models.TestRecord.timestamp).label("timestamp"),
@@ -365,6 +383,54 @@ def create_test(
         ping_ms = _ping(host)
         if ping_ms is not None:
             data["ping_ms"] = ping_ms
+            data.setdefault("ping_min_ms", ping_ms)
+            data.setdefault("ping_max_ms", ping_ms)
+    else:
+        data.setdefault("ping_min_ms", data["ping_ms"])
+        data.setdefault("ping_max_ms", data["ping_ms"])
+
+    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
+    existing_records = (
+        db.query(models.TestRecord)
+        .filter(
+            models.TestRecord.client_ip == client_ip,
+            models.TestRecord.timestamp >= ten_min_ago,
+        )
+        .all()
+    )
+
+    if existing_records:
+        values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
+        if data.get("ping_ms") is not None:
+            values_ping.append(data["ping_ms"])
+        values_down = [r.download_mbps for r in existing_records if r.download_mbps is not None]
+        if data.get("download_mbps") is not None:
+            values_down.append(data["download_mbps"])
+        values_up = [r.upload_mbps for r in existing_records if r.upload_mbps is not None]
+        if data.get("upload_mbps") is not None:
+            values_up.append(data["upload_mbps"])
+
+        for r in existing_records:
+            db.delete(r)
+
+        averaged = {
+            "client_ip": client_ip,
+            "location": data.get("location") or existing_records[0].location,
+            "asn": data.get("asn") or existing_records[0].asn,
+            "isp": data.get("isp") or existing_records[0].isp,
+            "ping_ms": sum(values_ping) / len(values_ping) if values_ping else None,
+            "download_mbps": sum(values_down) / len(values_down) if values_down else None,
+            "upload_mbps": sum(values_up) / len(values_up) if values_up else None,
+            "speedtest_type": data.get("speedtest_type") or existing_records[0].speedtest_type,
+            "mtr_result": data.get("mtr_result") or existing_records[0].mtr_result,
+            "iperf_result": data.get("iperf_result") or existing_records[0].iperf_result,
+            "test_target": data.get("test_target") or existing_records[0].test_target,
+        }
+        db_record = models.TestRecord(**averaged)
+        db.add(db_record)
+        db.commit()
+        db.refresh(db_record)
+        return db_record
 
     db_record = models.TestRecord(**data)
     db.add(db_record)
@@ -447,9 +513,18 @@ def run_ping(host: str, count: int = 4):
         )
         if result.returncode == 0:
             data = {"output": result.stdout}
-            match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
-            if match:
-                data["ping_ms"] = float(match.group(1))
+            summary = re.search(r"(?:rtt|round-trip).*? = ([0-9.]+)/([0-9.]+)/([0-9.]+)/", result.stdout)
+            if summary:
+                data["ping_min_ms"] = float(summary.group(1))
+                data["ping_ms"] = float(summary.group(2))
+                data["ping_max_ms"] = float(summary.group(3))
+            else:
+                match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
+                if match:
+                    data["ping_ms"] = float(match.group(1))
+            if "ping_ms" in data:
+                data.setdefault("ping_min_ms", data["ping_ms"])
+                data.setdefault("ping_max_ms", data["ping_ms"])
             return data
         return {"error": result.stderr or "Ping failed"}
     except FileNotFoundError:

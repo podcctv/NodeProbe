@@ -30,6 +30,22 @@
     </style>
   </head>
   <body>
+    <pre style="text-align: center;">
+
+                  _
+__   ___ __  ___ | |_ _____      ___ __
+\ \ / / '_ \/ __|| __/ _ \ \ /\ / / '_ \
+  \ V /| |_) \__ \| || (_) \ V  V /| | | |
+  \_/ | .__/|___/|__\___/ \_/\_/ |_| |_|
+      |_|
+                 _                      _
+  _ __   ___   __| | ___ _ __  _ __ ___ | |__   ___
+ | '_ \ / _ \ / _` |/ _ \ '_ \| '__/ _ \| '_ \ / _ \
+ | | | | (_) | (_| |  __/ |_) | | | (_) | |_) |  __/
+|_| |_|\___/ \__,_|\___| .__/|_|  \___/|_.__/ \___|
+                        |_|
+
+    </pre>
     <h1>Your Connection Info</h1>
     <ul>
       <li>IP: {{ info.client_ip|mask_ip }}</li>
@@ -42,24 +58,19 @@
 
     <h2>Recent Tests</h2>
     <table>
-      <tr>
-        <th>IP</th>
-        <th>Location</th>
-        <th>ASN</th>
-        <th>ISP</th>
-        <th>Ping</th>
-        <th>Recorded</th>
-      </tr>
-      {% for r in records %}
-      <tr>
-        <td>{{ r.client_ip|mask_ip }}</td>
-        <td>{{ r.location or '' }}</td>
-        <td>{{ r.asn or '' }}</td>
-        <td>{{ r.isp or '' }}</td>
-        <td>{% if r.ping_ms %}{{ '%.2f'|format(r.ping_ms) }} ms{% endif %}</td>
-        <td>{{ r.timestamp|short_ts }}</td>
-      </tr>
-      {% endfor %}
+      <thead>
+        <tr>
+          <th>IP</th>
+          <th>Location</th>
+          <th>ASN</th>
+          <th>ISP</th>
+          <th>Ping (min/avg/max)</th>
+          <th>Download (Mbps)</th>
+          <th>Upload (Mbps)</th>
+          <th>Recorded</th>
+        </tr>
+      </thead>
+      <tbody id="records-body"></tbody>
     </table>
 
     <h2>Manual Ping Test</h2>
@@ -73,7 +84,7 @@
     <button onclick="downloadTraceroute()">Download</button>
     <pre id="trace-output"></pre>
 
-    <h2>Speed Test</h2>
+    <h2>Speed Test <span id="download-speed"></span></h2>
     <button onclick="runSpeedtest()">Run Speed Test</button>
     <div>
       <div>Download Progress</div>
@@ -86,6 +97,45 @@
     <pre id="speed-output"></pre>
 
     <script>
+      async function loadRecentTests() {
+        const res = await fetch('/tests');
+        const data = await res.json();
+        const tbody = document.getElementById('records-body');
+        tbody.innerHTML = '';
+        (data.records || []).forEach(r => {
+          const tr = document.createElement('tr');
+          const cells = [
+            maskIp(r.client_ip),
+            r.location || '',
+            r.asn || '',
+            r.isp || '',
+            r.ping_ms ? `${((r.ping_min_ms ?? r.ping_ms)).toFixed(2)}/${(r.ping_ms).toFixed(2)}/${((r.ping_max_ms ?? r.ping_ms)).toFixed(2)} ms` : '—',
+            r.download_mbps ? r.download_mbps.toFixed(2) : '—',
+            r.upload_mbps ? r.upload_mbps.toFixed(2) : '—',
+            formatTimestamp(r.timestamp)
+          ];
+          cells.forEach(text => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      function maskIp(ip) {
+        if (!ip) return '';
+        const parts = ip.split('.');
+        return parts.length === 4 ? `${parts[0]}.***.***.${parts[3]}` : ip;
+      }
+
+      function formatTimestamp(ts) {
+        const d = new Date(ts);
+        return d.toLocaleString('zh-CN', { hour12: false });
+      }
+
+      window.addEventListener('load', loadRecentTests);
+
       async function runPing() {
         const host = document.getElementById('host').value;
         const res = await fetch('/ping?host=' + encodeURIComponent(host));
@@ -95,8 +145,14 @@
           await fetch('/tests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ test_target: host, ping_ms: data.ping_ms })
+            body: JSON.stringify({
+              test_target: host,
+              ping_ms: data.ping_ms,
+              ping_min_ms: data.ping_min_ms,
+              ping_max_ms: data.ping_max_ms
+            })
           });
+          loadRecentTests();
         }
       }
 
@@ -183,11 +239,14 @@
       }
 
       async function runSpeedtest() {
+        const multiThreads = 8;
         const single = await runSpeedtestOnce(1, 'single');
-        const multi = await runSpeedtestOnce(4, 'multi');
+        const multi = await runSpeedtestOnce(multiThreads, 'multi');
         document.getElementById('speed-output').textContent =
           `Single Thread - Download: ${single.down} Mbps Upload: ${single.up} Mbps\n` +
-          `Multi Thread - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
+          `Multi Thread (${multiThreads}) - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
+        document.getElementById('download-speed').textContent = `- ${multi.down} Mbps`;
+        loadRecentTests();
       }
     </script>
   </body>

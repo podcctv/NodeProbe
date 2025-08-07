@@ -1,6 +1,15 @@
-# NodeProbe
 
-Lightweight self-hosted probe service for testing global connectivity to a target VPS — with real-time network diagnostics and public result visualization.
+[中文文档](README.zh.md)
+
+## Features
+
+- ICMP ping with latency measurement
+- Traceroute with optional downloadable path report
+- HTTP speed test with progress tracking and recorded results
+- Automatic collection of client network information (IP, ASN, ISP and location)
+- Admin registration, login and test management interface
+- Persistent SQLite storage for test records
+- One‑click deployment via Docker Compose or a prebuilt image
 
 ## Development
 
@@ -15,20 +24,15 @@ Lightweight self-hosted probe service for testing global connectivity to a targe
 
 The script installs dependencies and launches the FastAPI server together with the Vite development server.
 
-The backend exposes simple diagnostic endpoints:
+## Docker deployment
 
-- `GET /ping?host=example.com` to run ICMP tests
-- `GET /traceroute?host=example.com` to trace network routes (add `&download=true` to get a text file)
+This project supports one‑click Docker deployment bundling all required services:
 
-## Docker 化部署
+- HTTP service for viewing and accessing probe results
+- Database service for persistent test record storage
+- Cron service for daily scheduled tasks
 
-本项目已支持一键部署，整合所有必要服务：
-
-- HTTP 服务：用于展示和访问探针结果
-- 数据库服务：持久化存储所有测试记录
-- 定时任务服务：可扩展的每日任务
-
-### 📦 快速启动
+### Compose example
 
 ```bash
 git clone https://github.com/podcctv/NodeProbe.git
@@ -36,17 +40,19 @@ cd NodeProbe
 docker compose up -d
 ```
 
-默认数据会存储在 `/opt/NodeProbe/data/` 下。
+Default data will be stored under `/opt/NodeProbe/data/`.
+The directory can be customised by setting the `DATA_DIR` environment variable
+before running Docker Compose or `deploy.sh`.
 
-访问示例：
+Access example:
 
 ```
-http://your-server-ip:8380/tests
+http://your-server-ip:8380
 ```
 
-### 🚀 使用部署脚本
+### Using the deploy script
 
-仓库提供 `deploy.sh` 脚本实现一键部署或更新。脚本会自动切换到自身所在目录，可在任意位置通过绝对路径执行：
+The repository provides a `deploy.sh` script for one‑click deployment or updates. The script automatically switches to its directory and can be executed from anywhere:
 
 ```bash
 git clone https://github.com/podcctv/NodeProbe.git
@@ -54,11 +60,11 @@ chmod +x ./NodeProbe/deploy.sh
 ./NodeProbe/deploy.sh
 ```
 
-脚本会自动设置持久化目录、拉取最新代码并通过 Docker Compose 重建并启动服务。
+The script sets up persistent directories, pulls the latest code and rebuilds/starts services via Docker Compose.
 
-### 🐳 使用预构建镜像一键部署
+### Using the prebuilt image
 
-如果只需要运行服务，可直接使用预构建的镜像：
+If you only need to run the service, you can use the prebuilt image directly:
 
 ```bash
 docker pull ghcr.io/podcctv/nodeprobe:latest
@@ -67,4 +73,9 @@ docker run -d --name nodeprobe -p 8380:8380 \
   ghcr.io/podcctv/nodeprobe:latest
 ```
 
-默认数据同样会保存到 `/opt/NodeProbe/data/`。
+Data will be saved to `/opt/NodeProbe/data/` by default.
+
+## Changelog
+
+For a list of notable changes, see [CHANGELOG](CHANGELOG.md).
+
