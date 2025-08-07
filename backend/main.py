@@ -25,6 +25,7 @@ from fastapi.responses import (
     RedirectResponse,
     StreamingResponse,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -34,6 +35,9 @@ import tempfile
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import models, schemas, database
+
+# Configure logging so Docker logs include informative startup messages
+logging.basicConfig(level=logging.INFO)
 
 # Ensure the database schema is up to date before serving requests.
 database.migrate()
@@ -45,6 +49,12 @@ app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET"
 logger = logging.getLogger("uvicorn.error")
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+
+# Serve built frontend assets when available
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+assets_dir = frontend_dist / "assets"
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 
 def mask_ip(ip: str | None) -> str | None:
@@ -95,7 +105,7 @@ def create_default_user():
         user = db.query(models.User).first()
         if not user:
             last_octet = host_ip.split(".")[-1]
-            password = f"nodeprobe{last_octet}"
+            password = os.environ.get("ADMIN_PASSWORD") or f"nodeprobe{last_octet}"
             user = models.User(
                 username="NodeProbe",
                 password_hash=hash_password(password),
@@ -108,6 +118,10 @@ def create_default_user():
             )
             logger.info(msg)
             print(msg, flush=True)
+        else:
+            logger.info("Admin user already exists; no default password generated.")
+            print("Admin user already exists; no default password generated.", flush=True)
+
         log_msg = (
             "Login help: visit http://%s:8380/ to access the dashboard." % host_ip
         )
@@ -329,6 +343,10 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
+
+    index_file = frontend_dist / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
 
     return templates.TemplateResponse(
         "index.html", {"request": request, "info": db_record}
