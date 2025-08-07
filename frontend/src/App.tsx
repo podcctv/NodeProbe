@@ -8,6 +8,8 @@ interface TestRecord {
   asn?: string | null;
   isp?: string | null;
   ping_ms?: number | null;
+  ping_min_ms?: number | null;
+  ping_max_ms?: number | null;
   download_mbps?: number | null;
   upload_mbps?: number | null;
   mtr_result?: string | null;
@@ -224,7 +226,9 @@ function App() {
                         <td className="px-2 py-1">{r.asn || ''}</td>
                         <td className="px-2 py-1">{r.isp || ''}</td>
                         <td className="px-2 py-1">
-                          {typeof r.ping_ms === 'number' ? `${r.ping_ms.toFixed(2)} ms` : ''}
+                          {typeof r.ping_ms === 'number'
+                            ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
+                            : ''}
                         </td>
                         <td className="px-2 py-1">
                           {typeof r.download_mbps === 'number'

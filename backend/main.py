@@ -336,7 +336,9 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
             func.max(models.TestRecord.location).label("location"),
             func.max(models.TestRecord.asn).label("asn"),
             func.max(models.TestRecord.isp).label("isp"),
+            func.min(models.TestRecord.ping_min_ms).label("ping_min_ms"),
             func.avg(models.TestRecord.ping_ms).label("ping_ms"),
+            func.max(models.TestRecord.ping_max_ms).label("ping_max_ms"),
             func.avg(models.TestRecord.download_mbps).label("download_mbps"),
             func.avg(models.TestRecord.upload_mbps).label("upload_mbps"),
             func.max(models.TestRecord.timestamp).label("timestamp"),
@@ -381,6 +383,11 @@ def create_test(
         ping_ms = _ping(host)
         if ping_ms is not None:
             data["ping_ms"] = ping_ms
+            data.setdefault("ping_min_ms", ping_ms)
+            data.setdefault("ping_max_ms", ping_ms)
+    else:
+        data.setdefault("ping_min_ms", data["ping_ms"])
+        data.setdefault("ping_max_ms", data["ping_ms"])
 
     ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
     existing_records = (
@@ -506,9 +513,18 @@ def run_ping(host: str, count: int = 4):
         )
         if result.returncode == 0:
             data = {"output": result.stdout}
-            match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
-            if match:
-                data["ping_ms"] = float(match.group(1))
+            summary = re.search(r"(?:rtt|round-trip).*? = ([0-9.]+)/([0-9.]+)/([0-9.]+)/", result.stdout)
+            if summary:
+                data["ping_min_ms"] = float(summary.group(1))
+                data["ping_ms"] = float(summary.group(2))
+                data["ping_max_ms"] = float(summary.group(3))
+            else:
+                match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
+                if match:
+                    data["ping_ms"] = float(match.group(1))
+            if "ping_ms" in data:
+                data.setdefault("ping_min_ms", data["ping_ms"])
+                data.setdefault("ping_max_ms", data["ping_ms"])
             return data
         return {"error": result.stderr or "Ping failed"}
     except FileNotFoundError:

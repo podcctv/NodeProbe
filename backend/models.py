@@ -12,7 +12,12 @@ class TestRecord(Base):
     location = Column(String)
     asn = Column(String)
     isp = Column(String)
+    # Average round trip time in milliseconds
     ping_ms = Column(Float)
+    # Minimum round trip time observed during the ping test
+    ping_min_ms = Column(Float)
+    # Maximum round trip time observed during the ping test
+    ping_max_ms = Column(Float)
     download_mbps = Column(Float)
     upload_mbps = Column(Float)
     speedtest_type = Column(String)
