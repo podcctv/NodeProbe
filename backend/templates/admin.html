@@ -32,6 +32,7 @@
     <section>
         <h2>Existing Records</h2>
         <button id="deleteSelected">Delete Selected</button>
+        <button id="exportExcel">Export to Excel</button>
         <table border="1" id="recordsTable">
             <thead>
                 <tr>
@@ -44,9 +45,10 @@
                     <th>Ping Avg(ms)</th>
                     <th>Ping Min(ms)</th>
                     <th>Ping Max(ms)</th>
-                    <th>Download(Mbps)</th>
-                    <th>Upload(Mbps)</th>
-                    <th>Speedtest Type</th>
+                    <th>Single DL(Mbps)</th>
+                    <th>Single UL(Mbps)</th>
+                    <th>Multi DL(Mbps)</th>
+                    <th>Multi UL(Mbps)</th>
                     <th>Target</th>
                     <th>Actions</th>
                 </tr>
@@ -60,7 +62,54 @@ async function loadRecords() {
     const data = await res.json();
     const tbody = document.querySelector('#recordsTable tbody');
     tbody.innerHTML = '';
+    const map = new Map();
     data.records.forEach(rec => {
+        if (!rec.client_ip) return;
+        const key = rec.client_ip;
+        const existing = map.get(key);
+        if (!existing) {
+            map.set(key, {
+                id: rec.id,
+                client_ip: rec.client_ip,
+                location: rec.location,
+                asn: rec.asn,
+                isp: rec.isp,
+                ping_ms: rec.ping_ms,
+                ping_min_ms: rec.ping_min_ms,
+                ping_max_ms: rec.ping_max_ms,
+                download_single_mbps: rec.speedtest_type === 'single' ? rec.download_mbps : undefined,
+                upload_single_mbps: rec.speedtest_type === 'single' ? rec.upload_mbps : undefined,
+                download_multi_mbps: rec.speedtest_type === 'multi' ? rec.download_mbps : undefined,
+                upload_multi_mbps: rec.speedtest_type === 'multi' ? rec.upload_mbps : undefined,
+                test_target: rec.test_target,
+                timestamp: rec.timestamp
+            });
+        } else {
+            if (new Date(rec.timestamp) > new Date(existing.timestamp)) {
+                existing.id = rec.id;
+                existing.location = rec.location;
+                existing.asn = rec.asn;
+                existing.isp = rec.isp;
+                existing.test_target = rec.test_target;
+                existing.timestamp = rec.timestamp;
+            }
+            if (typeof rec.ping_ms === 'number') {
+                existing.ping_ms = rec.ping_ms;
+                existing.ping_min_ms = rec.ping_min_ms;
+                existing.ping_max_ms = rec.ping_max_ms;
+            }
+            if (rec.speedtest_type === 'single') {
+                existing.download_single_mbps = rec.download_mbps;
+                existing.upload_single_mbps = rec.upload_mbps;
+            }
+            if (rec.speedtest_type === 'multi') {
+                existing.download_multi_mbps = rec.download_mbps;
+                existing.upload_multi_mbps = rec.upload_mbps;
+            }
+        }
+    });
+    aggregatedRecords = Array.from(map.values());
+    aggregatedRecords.forEach(rec => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="checkbox" value="${rec.id}"></td>
@@ -72,9 +121,10 @@ async function loadRecords() {
             <td>${rec.ping_ms ?? ''}</td>
             <td>${rec.ping_min_ms ?? ''}</td>
             <td>${rec.ping_max_ms ?? ''}</td>
-            <td>${rec.download_mbps ?? ''}</td>
-            <td>${rec.upload_mbps ?? ''}</td>
-            <td>${rec.speedtest_type || ''}</td>
+            <td>${rec.download_single_mbps ?? ''}</td>
+            <td>${rec.upload_single_mbps ?? ''}</td>
+            <td>${rec.download_multi_mbps ?? ''}</td>
+            <td>${rec.upload_multi_mbps ?? ''}</td>
             <td>${rec.test_target || ''}</td>
             <td><button data-edit="${rec.id}">Edit</button><button data-del="${rec.id}">Delete</button></td>
         `;
@@ -144,6 +194,24 @@ document.getElementById('deleteSelected').addEventListener('click', async () => 
 document.getElementById('selectAll').addEventListener('change', e => {
     const checked = e.target.checked;
     document.querySelectorAll('#recordsTable tbody input[type=checkbox]').forEach(cb => cb.checked = checked);
+});
+
+let aggregatedRecords = [];
+
+document.getElementById('exportExcel').addEventListener('click', () => {
+    if (!aggregatedRecords.length) return;
+    const header = ['Client IP','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Single DL(Mbps)','Single UL(Mbps)','Multi DL(Mbps)','Multi UL(Mbps)','Target'];
+    const rows = aggregatedRecords.map(r => [r.client_ip || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.download_single_mbps ?? '', r.upload_single_mbps ?? '', r.download_multi_mbps ?? '', r.upload_multi_mbps ?? '', r.test_target || '']);
+    const csv = [header.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'records.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 });
 
 loadRecords();
