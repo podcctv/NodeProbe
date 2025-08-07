@@ -8,6 +8,8 @@ interface TestRecord {
   asn?: string | null;
   isp?: string | null;
   ping_ms?: number | null;
+  download_mbps?: number | null;
+  upload_mbps?: number | null;
   mtr_result?: string | null;
   iperf_result?: string | null;
   test_target?: string | null;
@@ -117,13 +119,14 @@ function App() {
                     <th className="px-2 py-1 text-left">ASN</th>
                     <th className="px-2 py-1 text-left">ISP</th>
                     <th className="px-2 py-1 text-left">Ping</th>
+                    <th className="px-2 py-1 text-left">Download</th>
+                    <th className="px-2 py-1 text-left">Upload</th>
                     <th className="px-2 py-1 text-left">Recorded</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records
-                    .slice(-5)
-                    .reverse()
+                    .slice(0, 5)
                     .map((r) => (
                       <tr key={r.id}>
                         <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
@@ -134,6 +137,16 @@ function App() {
                         <td className="px-2 py-1">{r.isp || ''}</td>
                         <td className="px-2 py-1">
                           {typeof r.ping_ms === 'number' ? `${r.ping_ms.toFixed(2)} ms` : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {typeof r.download_mbps === 'number'
+                            ? `${r.download_mbps.toFixed(2)} Mbps`
+                            : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {typeof r.upload_mbps === 'number'
+                            ? `${r.upload_mbps.toFixed(2)} Mbps`
+                            : ''}
                         </td>
                         <td className="px-2 py-1">
                           {new Date(r.timestamp).toLocaleString()}
