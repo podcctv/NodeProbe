@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import SpeedChart from './SpeedChart';
 
-interface RawTestRecord {
+interface TestRecord {
   id: number;
   timestamp: string;
   client_ip?: string | null;
@@ -11,33 +11,18 @@ interface RawTestRecord {
   ping_ms?: number | null;
   ping_min_ms?: number | null;
   ping_max_ms?: number | null;
-  download_mbps?: number | null;
-  upload_mbps?: number | null;
-  speedtest_type?: string | null;
+  single_dl_mbps?: number | null;
+  single_ul_mbps?: number | null;
+  multi_dl_mbps?: number | null;
+  multi_ul_mbps?: number | null;
   mtr_result?: string | null;
   iperf_result?: string | null;
   test_target?: string | null;
 }
 
-interface AggregatedRecord {
-  id: number;
-  timestamp: string;
-  client_ip?: string | null;
-  location?: string | null;
-  asn?: string | null;
-  isp?: string | null;
-  ping_ms?: number | null;
-  ping_min_ms?: number | null;
-  ping_max_ms?: number | null;
-  download_single_mbps?: number | null;
-  upload_single_mbps?: number | null;
-  download_multi_mbps?: number | null;
-  upload_multi_mbps?: number | null;
-}
-
 interface TestsResponse {
   message?: string;
-  records: RawTestRecord[];
+  records: TestRecord[];
 }
 
 function maskIp(ip?: string | null) {
@@ -66,8 +51,8 @@ const ASCII_LOGO = [
 ].join('\n');
 
 function App() {
-  const [info, setInfo] = useState<AggregatedRecord | null>(null);
-  const [records, setRecords] = useState<AggregatedRecord[]>([]);
+  const [info, setInfo] = useState<TestRecord | null>(null);
+  const [records, setRecords] = useState<TestRecord[]>([]);
   const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
   const [pingOutput, setPingOutput] = useState<string | null>(null);
 
@@ -81,68 +66,23 @@ function App() {
         (r) =>
           r.client_ip &&
           (typeof r.ping_ms === 'number' ||
-            typeof r.download_mbps === 'number' ||
-            typeof r.upload_mbps === 'number')
+            typeof r.single_dl_mbps === 'number' ||
+            typeof r.single_ul_mbps === 'number' ||
+            typeof r.multi_dl_mbps === 'number' ||
+            typeof r.multi_ul_mbps === 'number')
       );
 
-      const map = new Map<string, AggregatedRecord>();
-      filtered.forEach((r) => {
-        const key = r.client_ip as string;
-        const existing = map.get(key);
-        if (!existing) {
-          map.set(key, {
-            id: r.id,
-            timestamp: r.timestamp,
-            client_ip: r.client_ip,
-            location: r.location,
-            asn: r.asn,
-            isp: r.isp,
-            ping_ms: r.ping_ms,
-            ping_min_ms: r.ping_min_ms,
-            ping_max_ms: r.ping_max_ms,
-            download_single_mbps:
-              r.speedtest_type === 'single' ? r.download_mbps : undefined,
-            upload_single_mbps:
-              r.speedtest_type === 'single' ? r.upload_mbps : undefined,
-            download_multi_mbps:
-              r.speedtest_type === 'multi' ? r.download_mbps : undefined,
-            upload_multi_mbps:
-              r.speedtest_type === 'multi' ? r.upload_mbps : undefined,
-          });
-        } else {
-          if (new Date(r.timestamp) > new Date(existing.timestamp)) {
-            existing.timestamp = r.timestamp;
-            existing.location = r.location;
-            existing.asn = r.asn;
-            existing.isp = r.isp;
-          }
-          if (typeof r.ping_ms === 'number') {
-            existing.ping_ms = r.ping_ms;
-            existing.ping_min_ms = r.ping_min_ms;
-            existing.ping_max_ms = r.ping_max_ms;
-          }
-          if (r.speedtest_type === 'single') {
-            existing.download_single_mbps = r.download_mbps;
-            existing.upload_single_mbps = r.upload_mbps;
-          }
-          if (r.speedtest_type === 'multi') {
-            existing.download_multi_mbps = r.download_mbps;
-            existing.upload_multi_mbps = r.upload_mbps;
-          }
-        }
-      });
-
-      const agg = Array.from(map.values()).sort(
+      const sorted = filtered.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
-      setRecords(agg);
-      if (agg.length > 0) {
-        setInfo(agg[0]);
+      setRecords(sorted);
+      if (sorted.length > 0) {
+        setInfo(sorted[0]);
       }
       if (data.message) {
         setRecordsMessage(data.message);
       }
-      return agg;
+      return sorted;
     } catch (err) {
       console.error('Failed to load previous tests', err);
       return [];
@@ -581,23 +521,23 @@ function App() {
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
-                        {typeof r.download_single_mbps === 'number'
-                          ? `${r.download_single_mbps.toFixed(2)} Mbps`
+                        {typeof r.single_dl_mbps === 'number'
+                          ? `${r.single_dl_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
-                        {typeof r.upload_single_mbps === 'number'
-                          ? `${r.upload_single_mbps.toFixed(2)} Mbps`
+                        {typeof r.single_ul_mbps === 'number'
+                          ? `${r.single_ul_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
-                        {typeof r.download_multi_mbps === 'number'
-                          ? `${r.download_multi_mbps.toFixed(2)} Mbps`
+                        {typeof r.multi_dl_mbps === 'number'
+                          ? `${r.multi_dl_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">
-                        {typeof r.upload_multi_mbps === 'number'
-                          ? `${r.upload_multi_mbps.toFixed(2)} Mbps`
+                        {typeof r.multi_ul_mbps === 'number'
+                          ? `${r.multi_ul_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
                       <td className="px-2 py-1 border border-green-700">

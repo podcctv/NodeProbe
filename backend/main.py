@@ -431,49 +431,14 @@ def api_root():
 def read_tests(request: Request, db: Session = Depends(get_db)):
     """Return recent test records for up to ten unique client IPs.
 
-    Each IP may have multiple ``speedtest_type`` variants (e.g. single or multi
-    thread).  The latest record for each combination of ``client_ip`` and
-    ``speedtest_type`` is selected.  We then return records for the ten most
-    recently active IPs, including all of their available test variants.
-
+    Since each IP has at most one aggregated record, we simply return the ten
+    most recently updated rows.
     """
-
-    # Latest record per (client_ip, speedtest_type)
-    latest_per_type = (
-        db.query(
-            models.TestRecord.client_ip,
-            models.TestRecord.speedtest_type,
-            func.max(models.TestRecord.timestamp).label("latest_ts"),
-        )
-        .group_by(models.TestRecord.client_ip, models.TestRecord.speedtest_type)
-        .subquery()
-    )
-
-    # Determine the ten most recent client IPs
-    top_ips = (
-        db.query(
-            latest_per_type.c.client_ip,
-            func.max(latest_per_type.c.latest_ts).label("latest_ts"),
-        )
-        .group_by(latest_per_type.c.client_ip)
-        .order_by(func.max(latest_per_type.c.latest_ts).desc())
-        .limit(10)
-        .subquery()
-    )
 
     rows = (
         db.query(models.TestRecord)
-        .join(
-            latest_per_type,
-            (models.TestRecord.client_ip == latest_per_type.c.client_ip)
-            & (
-                func.coalesce(models.TestRecord.speedtest_type, "")
-                == func.coalesce(latest_per_type.c.speedtest_type, "")
-            )
-            & (models.TestRecord.timestamp == latest_per_type.c.latest_ts),
-        )
-        .join(top_ips, models.TestRecord.client_ip == top_ips.c.client_ip)
         .order_by(models.TestRecord.timestamp.desc())
+        .limit(10)
         .all()
     )
 
@@ -563,71 +528,80 @@ def create_test(
         data.setdefault("ping_min_ms", data["ping_ms"])
         data.setdefault("ping_max_ms", data["ping_ms"])
 
-    speedtest_type = data.get("speedtest_type")
-    query = db.query(models.TestRecord).filter(
-        models.TestRecord.client_ip == client_ip
+    speedtest_type = data.pop("speedtest_type", None)
+    dl = data.pop("download_mbps", None)
+    ul = data.pop("upload_mbps", None)
+
+    existing = (
+        db.query(models.TestRecord)
+        .filter(models.TestRecord.client_ip == client_ip)
+        .first()
     )
-    if speedtest_type is None:
-        query = query.filter(models.TestRecord.speedtest_type.is_(None))
-    else:
-        query = query.filter(models.TestRecord.speedtest_type == speedtest_type)
-    existing_records = query.all()
 
-    if existing_records:
-        if skip_ping and data.get("ping_ms") is None:
-            values_ping = []
-            values_ping_min = []
-            values_ping_max = []
-        else:
-            values_ping = [r.ping_ms for r in existing_records if r.ping_ms is not None]
-            if data.get("ping_ms") is not None:
-                values_ping.append(data["ping_ms"])
-            values_ping_min = [
-                r.ping_min_ms for r in existing_records if r.ping_min_ms is not None
-            ]
-            if data.get("ping_min_ms") is not None:
-                values_ping_min.append(data["ping_min_ms"])
-            values_ping_max = [
-                r.ping_max_ms for r in existing_records if r.ping_max_ms is not None
-            ]
-            if data.get("ping_max_ms") is not None:
-                values_ping_max.append(data["ping_max_ms"])
-        values_down = [r.download_mbps for r in existing_records if r.download_mbps is not None]
-        if data.get("download_mbps") is not None:
-            values_down.append(data["download_mbps"])
-        values_up = [r.upload_mbps for r in existing_records if r.upload_mbps is not None]
-        if data.get("upload_mbps") is not None:
-            values_up.append(data["upload_mbps"])
+    def _avg(a, b):
+        if a is None:
+            return b
+        if b is None:
+            return a
+        return (a + b) / 2
 
-        for r in existing_records:
-            db.delete(r)
+    if existing:
+        if data.get("location"):
+            existing.location = data["location"]
+        if data.get("asn"):
+            existing.asn = normalize_asn(data["asn"])
+        if data.get("isp"):
+            existing.isp = data["isp"]
 
-        averaged = {
-            "client_ip": client_ip,
-            "location": data.get("location") or existing_records[0].location,
-            "asn": normalize_asn(data.get("asn") or existing_records[0].asn),
-            "isp": data.get("isp") or existing_records[0].isp,
-            "ping_min_ms": sum(values_ping_min) / len(values_ping_min)
-            if values_ping_min
-            else None,
-            "ping_ms": sum(values_ping) / len(values_ping) if values_ping else None,
-            "ping_max_ms": sum(values_ping_max) / len(values_ping_max)
-            if values_ping_max
-            else None,
-            "download_mbps": sum(values_down) / len(values_down) if values_down else None,
-            "upload_mbps": sum(values_up) / len(values_up) if values_up else None,
-            "speedtest_type": data.get("speedtest_type") or existing_records[0].speedtest_type,
-            "mtr_result": data.get("mtr_result") or existing_records[0].mtr_result,
-            "iperf_result": data.get("iperf_result") or existing_records[0].iperf_result,
-            "test_target": data.get("test_target") or existing_records[0].test_target,
-        }
-        db_record = models.TestRecord(**averaged)
-        db.add(db_record)
+        if data.get("ping_ms") is not None:
+            existing.ping_ms = _avg(existing.ping_ms, data["ping_ms"])
+            existing.ping_min_ms = _avg(existing.ping_min_ms, data["ping_min_ms"])
+            existing.ping_max_ms = _avg(existing.ping_max_ms, data["ping_max_ms"])
+
+        if speedtest_type == "single":
+            if dl is not None:
+                existing.single_dl_mbps = _avg(existing.single_dl_mbps, dl)
+            if ul is not None:
+                existing.single_ul_mbps = _avg(existing.single_ul_mbps, ul)
+        elif speedtest_type == "multi":
+            if dl is not None:
+                existing.multi_dl_mbps = _avg(existing.multi_dl_mbps, dl)
+            if ul is not None:
+                existing.multi_ul_mbps = _avg(existing.multi_ul_mbps, ul)
+
+        if data.get("mtr_result"):
+            existing.mtr_result = data["mtr_result"]
+        if data.get("iperf_result"):
+            existing.iperf_result = data["iperf_result"]
+        if data.get("test_target"):
+            existing.test_target = data["test_target"]
+
+        existing.timestamp = datetime.utcnow()
+
         db.commit()
-        db.refresh(db_record)
-        return db_record
+        db.refresh(existing)
+        return existing
 
-    db_record = models.TestRecord(**data)
+    mapped = {
+        "client_ip": client_ip,
+        "location": data.get("location"),
+        "asn": data.get("asn"),
+        "isp": data.get("isp"),
+        "ping_ms": data.get("ping_ms"),
+        "ping_min_ms": data.get("ping_min_ms"),
+        "ping_max_ms": data.get("ping_max_ms"),
+        "mtr_result": data.get("mtr_result"),
+        "iperf_result": data.get("iperf_result"),
+        "test_target": data.get("test_target"),
+    }
+    if speedtest_type == "single":
+        mapped["single_dl_mbps"] = dl
+        mapped["single_ul_mbps"] = ul
+    elif speedtest_type == "multi":
+        mapped["multi_dl_mbps"] = dl
+        mapped["multi_ul_mbps"] = ul
+
+    db_record = models.TestRecord(**mapped)
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
@@ -660,12 +634,23 @@ def admin_read_tests(
     "/admin/tests", response_model=schemas.TestRecord, include_in_schema=False
 )
 def admin_create_test(
-    record: schemas.TestRecordCreate,
+    record: schemas.TestRecordUpdate,
     db: Session = Depends(get_db),
     user: models.User = Depends(require_active_user),
 ):
     data = record.dict()
     data["asn"] = normalize_asn(data.get("asn"))
+    existing = (
+        db.query(models.TestRecord)
+        .filter(models.TestRecord.client_ip == data.get("client_ip"))
+        .first()
+    )
+    if existing:
+        for key, value in data.items():
+            setattr(existing, key, value)
+        db.commit()
+        db.refresh(existing)
+        return existing
     db_record = models.TestRecord(**data)
     db.add(db_record)
     db.commit()
