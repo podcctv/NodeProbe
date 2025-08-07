@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import SpeedChart from './SpeedChart';
 
 interface TestRecord {
   id: number;
@@ -48,6 +49,8 @@ function App() {
   const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
     null,
   );
+  const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
+  const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('');
@@ -137,16 +140,25 @@ function App() {
 
   async function downloadWithProgress(size: number) {
     setDownloadProgress({ transferred: 0, size });
+    setDownloadSpeeds([]);
     const res = await fetch(`/speedtest/download?size=${size}`);
     const reader = res.body?.getReader();
     if (!reader) return 0;
     let received = 0;
     const start = performance.now();
+    let lastTime = start;
     while (true) {
       const { done, value } = await reader.read();
+      const now = performance.now();
       if (done) break;
       received += value.length;
       setDownloadProgress({ transferred: received, size });
+      const diff = now - lastTime;
+      if (diff > 0 && value) {
+        const speed = (value.length * 8) / diff / 1000;
+        setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+      }
+      lastTime = now;
     }
     const end = performance.now();
     return ((size * 8) / (end - start) / 1000);
@@ -154,12 +166,24 @@ function App() {
 
   function uploadWithProgress(size: number) {
     setUploadProgress({ transferred: 0, size });
+    setUploadSpeeds([]);
     return new Promise<number>((resolve) => {
       const xhr = new XMLHttpRequest();
       const start = performance.now();
+      let lastLoaded = 0;
+      let lastTime = start;
       xhr.open('POST', '/speedtest/upload');
       xhr.upload.onprogress = (e) => {
         setUploadProgress({ transferred: e.loaded, size });
+        const now = performance.now();
+        const diff = now - lastTime;
+        const loadedDiff = e.loaded - lastLoaded;
+        if (diff > 0 && loadedDiff > 0) {
+          const speed = (loadedDiff * 8) / diff / 1000;
+          setUploadSpeeds((s) => [...s.slice(-99), speed]);
+        }
+        lastTime = now;
+        lastLoaded = e.loaded;
       };
       xhr.onload = () => {
         const end = performance.now();
@@ -172,6 +196,8 @@ function App() {
   const runSpeedtest = async (downloadSize: number, uploadSize: number) => {
     setSpeedRunning(true);
     setSpeedResult(null);
+    setDownloadSpeeds([]);
+    setUploadSpeeds([]);
     const down = await downloadWithProgress(downloadSize);
     const up = await uploadWithProgress(uploadSize);
     setSpeedResult({ down, up });
@@ -325,6 +351,20 @@ function App() {
           </div>
           <div>Download Progress: {formatProgress(downloadProgress)}</div>
           <div>Upload Progress: {formatProgress(uploadProgress)}</div>
+          {downloadSpeeds.length > 0 && (
+            <SpeedChart
+              title="Download Speed (Mbps)"
+              speeds={downloadSpeeds}
+              color="#00ffff"
+            />
+          )}
+          {uploadSpeeds.length > 0 && (
+            <SpeedChart
+              title="Upload Speed (Mbps)"
+              speeds={uploadSpeeds}
+              color="#ff00ff"
+            />
+          )}
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {`Download: ${speedResult.down.toFixed(2)} Mbps\nUpload: ${speedResult.up.toFixed(2)} Mbps`}
