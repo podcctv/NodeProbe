@@ -11,6 +11,11 @@ RUN npm run build
 # Stage 2: build backend
 FROM python:3.11-slim
 WORKDIR /app
+
+# Use a virtual environment to avoid running pip as root
+RUN python -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN apt-get update && apt-get install -y --no-install-recommends iputils-ping traceroute \
     && rm -rf /var/lib/apt/lists/* \
