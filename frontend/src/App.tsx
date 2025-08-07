@@ -49,45 +49,59 @@ function App() {
     null,
   );
   const [speedRunning, setSpeedRunning] = useState(false);
+  const [loading, setLoading] = useState(
+    !sessionStorage.getItem('initialTestDone'),
+  );
+  const [loadingMsg, setLoadingMsg] = useState('');
 
   useEffect(() => {
-    const collect = async () => {
-      try {
-        const res = await fetch('/tests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
-        });
-        const data = await res.json();
-        setInfo(data);
-      } catch (err) {
-        console.error('Failed to collect info', err);
-      }
-    };
-
-    const loadRecords = async () => {
-      try {
-        const res = await fetch('/tests');
-        const data: TestsResponse = await res.json();
-        setRecords(data.records || []);
-        if (data.message) {
-          setRecordsMessage(data.message);
-        }
-      } catch (err) {
-        console.error('Failed to load previous tests', err);
-      }
-    };
-
-    collect();
-    setTimeout(loadRecords, 0);
+    const hasRun = sessionStorage.getItem('initialTestDone');
+    if (!hasRun) {
+      runInitialTests();
+    } else {
+      loadRecords();
+    }
   }, []);
 
-  useEffect(() => {
-    if (info?.client_ip) {
-      runPing(info.client_ip);
-      runTraceroute(info.client_ip);
+  const loadRecords = async () => {
+    try {
+      const res = await fetch('/tests');
+      const data: TestsResponse = await res.json();
+      setRecords(data.records || []);
+      if (data.records && data.records.length > 0) {
+        setInfo(data.records[0]);
+      }
+      if (data.message) {
+        setRecordsMessage(data.message);
+      }
+    } catch (err) {
+      console.error('Failed to load previous tests', err);
     }
-  }, [info]);
+  };
+
+  const runInitialTests = async () => {
+    setLoading(true);
+    setLoadingMsg('正在进行 ping Traceroute 测试...');
+    try {
+      const res = await fetch('/tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      setInfo(data);
+      if (data?.client_ip) {
+        await runPing(data.client_ip);
+        await runTraceroute(data.client_ip, true);
+      }
+      await loadRecords();
+      sessionStorage.setItem('initialTestDone', 'true');
+    } catch (err) {
+      console.error('Failed to run initial tests', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const runPing = async (host: string) => {
     setPingOutput('Running...');
@@ -101,12 +115,20 @@ function App() {
     }
   };
 
-  const runTraceroute = async (host: string) => {
+  const runTraceroute = async (host: string, record = false) => {
     setTraceOutput('Running...');
     try {
       const res = await fetch(`/traceroute?host=${encodeURIComponent(host)}`);
       const data = await res.json();
-      setTraceOutput(data.output || data.error || 'No output');
+      const output = data.output || data.error || 'No output';
+      setTraceOutput(output);
+      if (record) {
+        await fetch('/tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test_target: host, mtr_result: output }),
+        });
+      }
     } catch (err) {
       console.error('Traceroute failed', err);
       setTraceOutput('Traceroute failed');
@@ -171,8 +193,19 @@ function App() {
         upload_mbps: up,
       }),
     });
+    await loadRecords();
     setSpeedRunning(false);
   };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
+        <div className="text-center space-y-2">
+          <div>Loading...</div>
+          {loadingMsg && <div>{loadingMsg}</div>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
