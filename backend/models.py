@@ -28,6 +28,7 @@ class TestRecord(Base):
     mtr_result = Column(String)
     iperf_result = Column(String)
     test_target = Column(String)
+    time_hour = Column(String)
 
 
 class User(Base):
