@@ -18,6 +18,15 @@ interface TestsResponse {
   records: TestRecord[];
 }
 
+function maskIp(ip?: string | null) {
+  if (!ip) return '';
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    return `${parts[0]}.***.***.${parts[3]}`;
+  }
+  return ip;
+}
+
 function App() {
   const [info, setInfo] = useState<TestRecord | null>(null);
   const [records, setRecords] = useState<TestRecord[]>([]);
@@ -75,8 +84,10 @@ function App() {
         {info ? (
           <div className="space-y-2 text-center">
             <h1 className="text-xl mb-4">Your Connection Info</h1>
-            <div>IP: {info.client_ip}</div>
-            {info.location && <div>Location: {info.location}</div>}
+            <div>IP: {maskIp(info.client_ip)}</div>
+            {info.location && info.location !== 'Unknown' && (
+              <div>Location: {info.location}</div>
+            )}
             {info.asn && <div>ASN: {info.asn}</div>}
             {info.isp && <div>ISP: {info.isp}</div>}
             <div className="text-sm text-gray-400">
@@ -96,7 +107,8 @@ function App() {
                 .reverse()
                 .map((r) => (
                   <li key={r.id}>
-                    {r.client_ip} - {r.location} -{' '}
+                    {maskIp(r.client_ip)}
+                    {r.location && r.location !== 'Unknown' && ` - ${r.location}`} -{' '}
                     {new Date(r.timestamp).toLocaleString()}
                   </li>
                 ))}

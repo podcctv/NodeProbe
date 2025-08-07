@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +17,23 @@ models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+
+
+def mask_ip(ip: str) -> str:
+    parts = ip.split(".")
+    if len(parts) == 4:
+        return f"{parts[0]}.***.***.{parts[3]}"
+    return ip
+
+
+def short_ts(ts):
+    if isinstance(ts, datetime):
+        return ts.strftime("%Y-%m-%d %H:%M:%S")
+    return ts
+
+
+templates.env.filters["mask_ip"] = mask_ip
+templates.env.filters["short_ts"] = short_ts
 
 # Allow the frontend dev server or any origin to access the API
 app.add_middleware(
