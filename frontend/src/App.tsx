@@ -469,10 +469,16 @@ function App() {
           <div className="text-lg animate-pulse">测试中，请不要关闭或刷新。</div>
           {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
           {downloadProgress.size > 0 && (
-            <div className="text-sm">下载进度：{formatProgress(downloadProgress)}</div>
+            <div className="text-sm">
+              下载进度：{formatProgress(downloadProgress)} ⬇️ Download{' '}
+              {currentDownloadSpeed.toFixed(2)} Mbps
+            </div>
           )}
           {uploadProgress.size > 0 && (
-            <div className="text-sm">上传进度：{formatProgress(uploadProgress)}</div>
+            <div className="text-sm">
+              上传进度：{formatProgress(uploadProgress)} ⬆️ Upload{' '}
+              {currentUploadSpeed.toFixed(2)} Mbps
+            </div>
           )}
         </div>
       </div>
@@ -658,25 +664,17 @@ function App() {
               </button>
             </div>
           </div>
-          <div>Download Progress: {formatProgress(downloadProgress)}</div>
-          <div>Upload Progress: {formatProgress(uploadProgress)}</div>
-          <div className="flex w-full justify-between">
-            <div className="bg-black bg-opacity-50 rounded p-2 w-40">
-              <div className="flex items-center justify-center">
-                <span className="mr-1">⬇️</span>Download
-              </div>
-              <div className="text-lg">
-                {currentDownloadSpeed.toFixed(2)} Mbps
-              </div>
-            </div>
-            <div className="bg-black bg-opacity-50 rounded p-2 w-40">
-              <div className="flex items-center justify-center">
-                <span className="mr-1">⬆️</span>Upload
-              </div>
-              <div className="text-lg">
-                {currentUploadSpeed.toFixed(2)} Mbps
-              </div>
-            </div>
+          <div>
+            Download Progress: {formatProgress(downloadProgress)}{' '}
+            <span className="ml-2">
+              ⬇️ Download {currentDownloadSpeed.toFixed(2)} Mbps
+            </span>
+          </div>
+          <div>
+            Upload Progress: {formatProgress(uploadProgress)}{' '}
+            <span className="ml-2">
+              ⬆️ Upload {currentUploadSpeed.toFixed(2)} Mbps
+            </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 w-full">
             {downloadSpeeds.length > 0 && (
