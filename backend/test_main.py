@@ -45,6 +45,15 @@ def test_homepage_uses_forwarded_for_header():
     assert ip in ips
 
 
+def test_get_client_ip_handles_missing_client():
+    from starlette.requests import Request
+    from backend.main import _get_client_ip
+
+    scope = {"type": "http", "headers": []}
+    req = Request(scope)
+    assert _get_client_ip(req) == ""
+
+
 def test_ping_endpoint_localhost():
     res = client.get("/ping", params={"host": "127.0.0.1", "count": 1})
     data = res.json()
