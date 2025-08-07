@@ -18,4 +18,6 @@ All notable changes to this project will be documented in this file.
 - Ensure database directory exists and `/tests` endpoint is accessible
 - Resolve missing ping command and other display issues
 - Preserve Docker volume by parameterising `DATA_DIR` in deploy script
+- Show default admin password and login URL in Docker startup logs
+
 

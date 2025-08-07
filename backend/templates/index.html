@@ -47,7 +47,7 @@
         <th>Location</th>
         <th>ASN</th>
         <th>ISP</th>
-        <th>Ping</th>
+        <th>Ping (min/avg/max)</th>
         <th>Recorded</th>
       </tr>
       {% for r in records %}
@@ -56,7 +56,11 @@
         <td>{{ r.location or '' }}</td>
         <td>{{ r.asn or '' }}</td>
         <td>{{ r.isp or '' }}</td>
-        <td>{% if r.ping_ms %}{{ '%.2f'|format(r.ping_ms) }} ms{% endif %}</td>
+        <td>
+          {% if r.ping_ms %}
+            {{ '%.2f'|format(r.ping_min_ms or r.ping_ms) }}/{{ '%.2f'|format(r.ping_ms) }}/{{ '%.2f'|format(r.ping_max_ms or r.ping_ms) }} ms
+          {% endif %}
+        </td>
         <td>{{ r.timestamp|short_ts }}</td>
       </tr>
       {% endfor %}
@@ -95,7 +99,12 @@
           await fetch('/tests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ test_target: host, ping_ms: data.ping_ms })
+            body: JSON.stringify({
+              test_target: host,
+              ping_ms: data.ping_ms,
+              ping_min_ms: data.ping_min_ms,
+              ping_max_ms: data.ping_max_ms
+            })
           });
         }
       }

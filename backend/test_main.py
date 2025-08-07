@@ -41,6 +41,8 @@ def test_ping_endpoint_localhost():
     assert "output" in data
     assert "ttl" in data["output"]
     assert "ping_ms" in data
+    assert "ping_min_ms" in data
+    assert "ping_max_ms" in data
 
 
 def test_traceroute_endpoint_download():
@@ -156,4 +158,28 @@ def test_recent_tests_are_aggregated_by_ip():
     assert abs(rec["ping_ms"] - 15) < 0.01
     assert abs(rec["download_mbps"] - 25) < 0.01
     assert abs(rec["upload_mbps"] - 10) < 0.01
+
+
+def test_create_test_merges_recent_records():
+    from backend.database import SessionLocal
+    from backend.models import TestRecord
+
+    db = SessionLocal()
+    try:
+        db.query(TestRecord).delete()
+        db.add(TestRecord(client_ip="testclient", ping_ms=10))
+        db.commit()
+    finally:
+        db.close()
+
+    res = client.post("/tests", json={"ping_ms": 20})
+    assert res.status_code == 200
+
+    db = SessionLocal()
+    try:
+        records = db.query(TestRecord).filter_by(client_ip="testclient").all()
+        assert len(records) == 1
+        assert abs(records[0].ping_ms - 15) < 0.01
+    finally:
+        db.close()
 
