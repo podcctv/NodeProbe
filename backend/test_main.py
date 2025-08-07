@@ -55,6 +55,13 @@ def test_ping_endpoint_localhost():
     assert "ping_max_ms" in data
 
 
+def test_create_test_skip_ping():
+    res = client.post("/tests?skip_ping=true", json={})
+    assert res.status_code == 200
+    data = res.json()
+    assert data.get("ping_ms") is None
+
+
 def test_traceroute_endpoint_download():
     res = client.get("/traceroute", params={"host": "127.0.0.1", "download": "true"})
     assert res.status_code == 200
