@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import os
 import secrets
@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import logging
 import socket
+from zoneinfo import ZoneInfo
 
 from fastapi import (
     FastAPI,
@@ -62,8 +63,15 @@ def mask_ip(ip: str | None) -> str | None:
     return ip
 
 
+def to_shanghai(ts: datetime) -> datetime:
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(ZoneInfo("Asia/Shanghai"))
+
+
 def short_ts(ts):
     if isinstance(ts, datetime):
+        ts = to_shanghai(ts)
         return ts.strftime("%Y-%m-%d %H:%M:%S")
     return ts
 
