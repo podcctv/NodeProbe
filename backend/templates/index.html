@@ -69,8 +69,10 @@ __     ______  ____ _____ _____        ___   _       _   _  ___  ____  _____   _
           <th>ASN</th>
           <th>ISP</th>
           <th>Ping (min/avg/max)</th>
-          <th>Download (Mbps)</th>
-          <th>Upload (Mbps)</th>
+          <th>Single DL(Mbps)</th>
+          <th>Single UL(Mbps)</th>
+          <th>Multi DL(Mbps)</th>
+          <th>Multi UL(Mbps)</th>
           <th>Recorded</th>
         </tr>
       </thead>
@@ -120,8 +122,10 @@ __     ______  ____ _____ _____        ___   _       _   _  ___  ____  _____   _
             r.asn || '',
             r.isp || '',
             r.ping_ms ? `${((r.ping_min_ms ?? r.ping_ms)).toFixed(2)}/${(r.ping_ms).toFixed(2)}/${((r.ping_max_ms ?? r.ping_ms)).toFixed(2)} ms` : '—',
-            r.download_mbps ? r.download_mbps.toFixed(2) : '—',
-            r.upload_mbps ? r.upload_mbps.toFixed(2) : '—',
+            r.single_dl_mbps ? r.single_dl_mbps.toFixed(2) : '—',
+            r.single_ul_mbps ? r.single_ul_mbps.toFixed(2) : '—',
+            r.multi_dl_mbps ? r.multi_dl_mbps.toFixed(2) : '—',
+            r.multi_ul_mbps ? r.multi_ul_mbps.toFixed(2) : '—',
             formatTimestamp(r.timestamp)
           ];
           cells.forEach(text => {

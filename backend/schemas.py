@@ -14,16 +14,30 @@ class TestRecordBase(BaseModel):
     ping_min_ms: float | None = None
     # Maximum round trip time observed during the ping test
     ping_max_ms: float | None = None
+    # Aggregated download/upload speeds for single and multi thread tests
+    single_dl_mbps: float | None = None
+    single_ul_mbps: float | None = None
+    multi_dl_mbps: float | None = None
+    multi_ul_mbps: float | None = None
+    mtr_result: str | None = None
+    iperf_result: str | None = None
+    test_target: str | None = None
+
+
+class TestRecordCreate(BaseModel):
+    client_ip: str | None = None
+    location: str | None = None
+    asn: str | None = None
+    isp: str | None = None
+    ping_ms: float | None = None
+    ping_min_ms: float | None = None
+    ping_max_ms: float | None = None
     download_mbps: float | None = None
     upload_mbps: float | None = None
     speedtest_type: str | None = None
     mtr_result: str | None = None
     iperf_result: str | None = None
     test_target: str | None = None
-
-
-class TestRecordCreate(TestRecordBase):
-    pass
 
 
 class TestRecordUpdate(TestRecordBase):

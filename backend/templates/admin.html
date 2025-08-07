@@ -22,9 +22,10 @@
             <label>Ping Avg(ms): <input name="ping_ms" type="number" step="0.01"></label><br>
             <label>Ping Min(ms): <input name="ping_min_ms" type="number" step="0.01"></label><br>
             <label>Ping Max(ms): <input name="ping_max_ms" type="number" step="0.01"></label><br>
-            <label>Download(Mbps): <input name="download_mbps" type="number" step="0.01"></label><br>
-            <label>Upload(Mbps): <input name="upload_mbps" type="number" step="0.01"></label><br>
-            <label>Speedtest Type: <input name="speedtest_type"></label><br>
+            <label>Single DL(Mbps): <input name="single_dl_mbps" type="number" step="0.01"></label><br>
+            <label>Single UL(Mbps): <input name="single_ul_mbps" type="number" step="0.01"></label><br>
+            <label>Multi DL(Mbps): <input name="multi_dl_mbps" type="number" step="0.01"></label><br>
+            <label>Multi UL(Mbps): <input name="multi_ul_mbps" type="number" step="0.01"></label><br>
             <label>Test Target: <input name="test_target"></label><br>
             <button type="submit">Save</button>
         </form>
@@ -45,9 +46,10 @@
                     <th>Ping Avg(ms)</th>
                     <th>Ping Min(ms)</th>
                     <th>Ping Max(ms)</th>
-                    <th>Download(Mbps)</th>
-                    <th>Upload(Mbps)</th>
-                    <th>Speedtest Type</th>
+                    <th>Single DL(Mbps)</th>
+                    <th>Single UL(Mbps)</th>
+                    <th>Multi DL(Mbps)</th>
+                    <th>Multi UL(Mbps)</th>
                     <th>Target</th>
                     <th>Actions</th>
                 </tr>
@@ -87,9 +89,10 @@ async function loadRecords(page = 1) {
             <td>${rec.ping_ms ?? ''}</td>
             <td>${rec.ping_min_ms ?? ''}</td>
             <td>${rec.ping_max_ms ?? ''}</td>
-            <td>${rec.download_mbps ?? ''}</td>
-            <td>${rec.upload_mbps ?? ''}</td>
-            <td>${rec.speedtest_type || ''}</td>
+            <td>${rec.single_dl_mbps ?? ''}</td>
+            <td>${rec.single_ul_mbps ?? ''}</td>
+            <td>${rec.multi_dl_mbps ?? ''}</td>
+            <td>${rec.multi_ul_mbps ?? ''}</td>
             <td>${rec.test_target || ''}</td>
             <td><button data-edit="${rec.id}">Edit</button><button data-del="${rec.id}">Delete</button></td>
         `;
@@ -132,9 +135,10 @@ document.getElementById('recordsTable').addEventListener('click', async e => {
             form.ping_ms.value = rec.ping_ms ?? '';
             form.ping_min_ms.value = rec.ping_min_ms ?? '';
             form.ping_max_ms.value = rec.ping_max_ms ?? '';
-            form.download_mbps.value = rec.download_mbps ?? '';
-            form.upload_mbps.value = rec.upload_mbps ?? '';
-            form.speedtest_type.value = rec.speedtest_type || '';
+            form.single_dl_mbps.value = rec.single_dl_mbps ?? '';
+            form.single_ul_mbps.value = rec.single_ul_mbps ?? '';
+            form.multi_dl_mbps.value = rec.multi_dl_mbps ?? '';
+            form.multi_ul_mbps.value = rec.multi_ul_mbps ?? '';
             form.test_target.value = rec.test_target || '';
         }
     }
@@ -174,8 +178,8 @@ document.getElementById('nextPage').addEventListener('click', () => {
 
 document.getElementById('exportExcel').addEventListener('click', () => {
     if (!currentRecords.length) return;
-    const header = ['Client IP','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Download(Mbps)','Upload(Mbps)','Speedtest Type','Target'];
-    const rows = currentRecords.map(r => [r.client_ip || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.download_mbps ?? '', r.upload_mbps ?? '', r.speedtest_type || '', r.test_target || '']);
+    const header = ['Client IP','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Single DL(Mbps)','Single UL(Mbps)','Multi DL(Mbps)','Multi UL(Mbps)','Target'];
+    const rows = currentRecords.map(r => [r.client_ip || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.single_dl_mbps ?? '', r.single_ul_mbps ?? '', r.multi_dl_mbps ?? '', r.multi_ul_mbps ?? '', r.test_target || '']);
     const csv = [header.join(','), ...rows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
