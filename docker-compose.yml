@@ -4,5 +4,5 @@ services:
     ports:
       - "8380:8380"
     volumes:
-      - /opt/NodeProbe/data:/app/data
+      - ${DATA_DIR:-/opt/NodeProbe/data}:/app/data
     restart: unless-stopped
