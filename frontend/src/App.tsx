@@ -49,19 +49,12 @@ function App() {
     null,
   );
   const [speedRunning, setSpeedRunning] = useState(false);
-  const [loading, setLoading] = useState(
-    !sessionStorage.getItem('initialTestDone'),
-  );
+  const [loading, setLoading] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState('');
 
   useEffect(() => {
-    const hasRun = sessionStorage.getItem('initialTestDone');
-    if (!hasRun) {
-      runInitialTests();
-    } else {
-      loadRecords();
-    }
-  }, []);
+    runInitialTests();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRecords = async () => {
     try {
@@ -95,7 +88,6 @@ function App() {
         await runTraceroute(data.client_ip, true);
       }
       await loadRecords();
-      sessionStorage.setItem('initialTestDone', 'true');
     } catch (err) {
       console.error('Failed to run initial tests', err);
     } finally {
@@ -214,11 +206,9 @@ function App() {
           <div className="space-y-2 text-center">
             <h1 className="text-xl mb-4">Your Connection Info</h1>
             <div>IP: {maskIp(info.client_ip)}</div>
-            {info.location && info.location !== 'Unknown' && (
-              <div>Location: {info.location}</div>
-            )}
-            {info.asn && <div>ASN: {info.asn}</div>}
-            {info.isp && <div>ISP: {info.isp}</div>}
+            <div>Location: {info.location || 'Unknown'}</div>
+            <div>ASN: {info.asn || 'Unknown'}</div>
+            <div>ISP: {info.isp || 'Unknown'}</div>
             {typeof info.ping_ms === 'number' && (
               <div>Ping: {info.ping_ms.toFixed(2)} ms</div>
             )}
@@ -254,10 +244,12 @@ function App() {
                       <tr key={r.id}>
                         <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
                         <td className="px-2 py-1">
-                          {r.location && r.location !== 'Unknown' ? r.location : ''}
+                          {r.location && r.location !== 'Unknown'
+                            ? r.location
+                            : 'Unknown'}
                         </td>
-                        <td className="px-2 py-1">{r.asn || ''}</td>
-                        <td className="px-2 py-1">{r.isp || ''}</td>
+                        <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
+                        <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
                         <td className="px-2 py-1">
                           {typeof r.ping_ms === 'number'
                             ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
