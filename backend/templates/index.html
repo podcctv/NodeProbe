@@ -22,6 +22,11 @@
         padding: 0.5rem;
         overflow-x: auto;
       }
+      table, th, td {
+        border: 1px solid #0f0;
+        border-collapse: collapse;
+        padding: 0.3rem;
+      }
     </style>
   </head>
   <body>
@@ -36,16 +41,36 @@
     </ul>
 
     <h2>Recent Tests</h2>
-    <ul>
+    <table>
+      <tr>
+        <th>IP</th>
+        <th>Location</th>
+        <th>ASN</th>
+        <th>ISP</th>
+        <th>Ping</th>
+        <th>Recorded</th>
+      </tr>
       {% for r in records %}
+
       <li>{{ r.client_ip|mask_ip }}{% if r.location %} - {{ r.location }}{% endif %}{% if r.ping_ms %} - {{ '%.2f'|format(r.ping_ms) }} ms{% endif %} - {{ r.timestamp|short_ts }}</li>
+
       {% endfor %}
-    </ul>
+    </table>
 
     <h2>Manual Ping Test</h2>
     <input id="host" value="8.8.8.8" />
     <button onclick="runPing()">Ping</button>
     <pre id="ping-output"></pre>
+
+    <h2>Traceroute</h2>
+    <input id="trace-host" value="8.8.8.8" />
+    <button onclick="runTraceroute()">Traceroute</button>
+    <button onclick="downloadTraceroute()">Download</button>
+    <pre id="trace-output"></pre>
+
+    <h2>Speed Test</h2>
+    <button onclick="runSpeedtest()">Run Speed Test</button>
+    <pre id="speed-output"></pre>
 
     <script>
       async function runPing() {
@@ -53,6 +78,40 @@
         const res = await fetch('/ping?host=' + encodeURIComponent(host));
         const data = await res.json();
         document.getElementById('ping-output').textContent = data.output || data.error || 'No output';
+        if (data.ping_ms) {
+          await fetch('/tests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ test_target: host, ping_ms: data.ping_ms })
+          });
+        }
+      }
+
+      async function runTraceroute(download = false) {
+        const host = document.getElementById('trace-host').value;
+        if (download) {
+          window.location = '/traceroute?host=' + encodeURIComponent(host) + '&download=true';
+          return;
+        }
+        const res = await fetch('/traceroute?host=' + encodeURIComponent(host));
+        const data = await res.json();
+        document.getElementById('trace-output').textContent = data.output || data.error || 'No output';
+      }
+
+      function downloadTraceroute() {
+        runTraceroute(true);
+      }
+
+      async function runSpeedtest() {
+        const res = await fetch('/speedtest');
+        const data = await res.json();
+        if (data.download) {
+          const down = (data.download / 1e6).toFixed(2);
+          const up = (data.upload / 1e6).toFixed(2);
+          document.getElementById('speed-output').textContent = `Download: ${down} Mbps\nUpload: ${up} Mbps`;
+        } else {
+          document.getElementById('speed-output').textContent = data.error || 'No output';
+        }
       }
     </script>
   </body>
