@@ -172,12 +172,18 @@ def test_create_test_merges_recent_records():
     db = SessionLocal()
     try:
         db.query(TestRecord).delete()
-        db.add(TestRecord(client_ip="testclient", ping_ms=10))
+        db.add(
+            TestRecord(
+                client_ip="testclient", ping_ms=10, ping_min_ms=8, ping_max_ms=12
+            )
+        )
         db.commit()
     finally:
         db.close()
 
-    res = client.post("/tests", json={"ping_ms": 20})
+    res = client.post(
+        "/tests", json={"ping_ms": 20, "ping_min_ms": 18, "ping_max_ms": 22}
+    )
     assert res.status_code == 200
 
     db = SessionLocal()
@@ -185,6 +191,8 @@ def test_create_test_merges_recent_records():
         records = db.query(TestRecord).filter_by(client_ip="testclient").all()
         assert len(records) == 1
         assert abs(records[0].ping_ms - 15) < 0.01
+        assert abs(records[0].ping_min_ms - 13) < 0.01
+        assert abs(records[0].ping_max_ms - 17) < 0.01
     finally:
         db.close()
 
