@@ -64,3 +64,25 @@ def test_speedtest_endpoints():
     assert res_up.status_code == 200
     data = res_up.json()
     assert data.get("received") == size
+
+
+def test_register_and_login_requires_password_change():
+    import uuid
+
+    username = f"user{uuid.uuid4().hex}"
+    res = client.post("/admin/register", data={"username": username})
+    assert res.status_code == 200
+    import re
+
+    m = re.search(r"Default Password: ([^<]+)", res.text)
+    assert m, res.text
+    password = m.group(1)
+    assert password.startswith("nodeprobe")
+
+    res_login = client.post(
+        "/admin/login",
+        data={"username": username, "password": password},
+        follow_redirects=False,
+    )
+    assert res_login.status_code == 303
+    assert res_login.headers["location"] == "/admin/password"
