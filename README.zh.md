@@ -1,9 +1,3 @@
-```
-VPSTOWN · NODEPROBE
-```
-
-轻量级自托管探针服务，用于测试目标 VPS 的全球连通性，提供实时网络诊断和公共结果可视化。
-
 [English](README.md)
 
 ## 功能特性
