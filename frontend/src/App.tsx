@@ -416,9 +416,10 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
-        <div className="text-center space-y-2">
-          <div>Loading...</div>
-          {loadingMsg && <div>{loadingMsg}</div>}
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
+          <div className="text-lg animate-pulse">Loading...</div>
+          {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
         </div>
       </div>
     );
