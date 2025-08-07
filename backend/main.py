@@ -31,7 +31,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import models, schemas, database
 
-models.Base.metadata.create_all(bind=database.engine)
+# Ensure the database schema is up to date before serving requests.
+database.migrate()
 
 app = FastAPI()
 
