@@ -325,15 +325,18 @@ def api_root():
 def read_tests(request: Request, db: Session = Depends(get_db)):
     """Return the latest test record for up to ten unique client IPs.
 
+
     The most recent record for each distinct ``client_ip`` is selected and the
     results are ordered by ``timestamp`` in descending order. Only the latest
     ten IPs are returned to keep the response size manageable for the dashboard
     interface.
+
     """
 
     subq = (
         db.query(
             models.TestRecord.client_ip,
+
             func.max(models.TestRecord.timestamp).label("latest_ts"),
         )
         .group_by(models.TestRecord.client_ip)
@@ -350,6 +353,7 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
         .order_by(models.TestRecord.timestamp.desc())
         .limit(10)
         .all()
+
     )
 
     if not rows:

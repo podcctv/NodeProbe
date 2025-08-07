@@ -104,7 +104,9 @@ def test_create_speedtest_record():
     assert data["download_mbps"] == 10.0
 
 
+
 def test_recent_tests_return_latest_ten_ips():
+
     from datetime import datetime, timedelta
     from backend.database import SessionLocal
     from backend.models import TestRecord
@@ -125,11 +127,13 @@ def test_recent_tests_return_latest_ten_ips():
         # Older duplicate for the most recent IP to ensure latest is chosen
         db.add(
             TestRecord(
+
                 client_ip="1.1.1.0",
                 ping_ms=999,
                 timestamp=now - timedelta(minutes=30),
             )
         )
+
         db.commit()
     finally:
         db.close()
@@ -137,6 +141,7 @@ def test_recent_tests_return_latest_ten_ips():
     res = client.get("/tests")
     assert res.status_code == 200
     data = res.json()
+
     assert len(data["records"]) == 10
 
     ips = [r["client_ip"] for r in data["records"]]
@@ -147,6 +152,7 @@ def test_recent_tests_return_latest_ten_ips():
     # Ensure the latest record for an IP is returned
     rec = next(r for r in data["records"] if r["client_ip"] == "1.1.1.0")
     assert rec["ping_ms"] == 0
+
 
 
 def test_create_test_merges_recent_records():
