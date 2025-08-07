@@ -48,7 +48,7 @@ docker compose up -d
 访问示例：
 
 ```
-http://your-server-ip:8380/tests
+http://your-server-ip:8380
 ```
 
 ### 使用部署脚本

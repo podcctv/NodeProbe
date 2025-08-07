@@ -1,5 +1,7 @@
 from pathlib import Path
-from datetime import datetime, timezone
+
+from datetime import datetime, timezone, timedelta
+
 import re
 import os
 import secrets
@@ -26,6 +28,7 @@ from fastapi.responses import (
 )
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import requests
 import subprocess
 import tempfile
@@ -310,23 +313,39 @@ def api_root():
 
 @app.get("/tests", response_model=schemas.TestsResponse)
 def read_tests(request: Request, db: Session = Depends(get_db)):
-    """Return all stored test records.
+    """Return aggregated test records for the last ten minutes.
 
-    When the database is empty a default record is created automatically so
-    that the endpoint always returns at least one item without requiring a
-    manual ``POST`` from the user.
+    Multiple tests from the same ``client_ip`` within the last ten minutes are
+    collapsed into a single entry with average ``ping_ms``,
+    ``download_mbps`` and ``upload_mbps`` values computed directly in the
+    database.  The most recent ``timestamp`` for each IP is retained so that
+    results remain chronologically ordered.
     """
 
-    records = db.query(models.TestRecord).all()
-    if not records:
-        default_record = models.TestRecord(
-            client_ip=request.client.host,
-            test_target="default",
+    ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
+    q = (
+        db.query(
+            func.max(models.TestRecord.id).label("id"),
+            models.TestRecord.client_ip,
+            func.max(models.TestRecord.location).label("location"),
+            func.max(models.TestRecord.asn).label("asn"),
+            func.max(models.TestRecord.isp).label("isp"),
+            func.avg(models.TestRecord.ping_ms).label("ping_ms"),
+            func.avg(models.TestRecord.download_mbps).label("download_mbps"),
+            func.avg(models.TestRecord.upload_mbps).label("upload_mbps"),
+            func.max(models.TestRecord.timestamp).label("timestamp"),
+            func.max(models.TestRecord.test_target).label("test_target"),
         )
-        db.add(default_record)
-        db.commit()
-        db.refresh(default_record)
-        records = [default_record]
+        .filter(models.TestRecord.timestamp >= ten_min_ago)
+        .group_by(models.TestRecord.client_ip)
+        .order_by(func.max(models.TestRecord.timestamp).desc())
+    )
+
+    rows = q.all()
+    if not rows:
+        return {"message": "No recent test records found", "records": []}
+
+    records = [schemas.TestRecord.model_validate(dict(row._mapping)) for row in rows]
     return {"records": records}
 
 

@@ -48,7 +48,7 @@ Default data will be stored under `/opt/NodeProbe/data/`.
 Access example:
 
 ```
-http://your-server-ip:8380/tests
+http://your-server-ip:8380
 ```
 
 ### Using the deploy script
