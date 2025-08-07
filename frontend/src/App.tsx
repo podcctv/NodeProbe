@@ -502,7 +502,7 @@ function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
-          <pre className="text-center whitespace-pre font-mono">{ASCII_LOGO}</pre>
+          <pre className="whitespace-pre font-mono mx-auto">{ASCII_LOGO}</pre>
           <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
           <div className="text-lg animate-pulse">Loading...</div>
           {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
@@ -514,7 +514,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4">
       <div className="w-full max-w-3xl mx-auto space-y-8">
-        <pre className="text-center whitespace-pre font-mono">{ASCII_LOGO}</pre>
+        <pre className="whitespace-pre font-mono mx-auto">{ASCII_LOGO}</pre>
         {info ? (
           <div className="space-y-2 text-center">
             <h1 className="text-xl mb-4">Your Connection Info</h1>
