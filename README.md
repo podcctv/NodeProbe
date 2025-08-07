@@ -5,10 +5,11 @@
 
 - ICMP ping with latency measurement
 - Traceroute with optional downloadable path report
-- HTTP speed test with progress tracking and recorded results
+- HTTP speed test with progress tracking, visual charts and a colour‑coded progress bar
 - Automatic collection of client network information (IP, ASN, ISP and location)
 - Admin registration, login and test management interface
 - Persistent SQLite storage for test records
+- Grouped test statistics by browser and IP with hourly aggregation
 - One‑click deployment via Docker Compose or a prebuilt image
 
 ## Development

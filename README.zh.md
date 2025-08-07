@@ -4,10 +4,11 @@
 
 - 支持 ICMP Ping 延迟测试
 - 提供 Traceroute，并可选择下载路径报告
-- HTTP Speedtest，带进度显示与结果记录
+- HTTP Speedtest，带进度显示、可视化图表和彩色进度条
 - 自动收集并展示客户端网络信息（IP、ASN、ISP 及地理位置）
 - 管理员注册、登录与测试管理界面
 - 使用 SQLite 持久化存储测试记录
+- 按浏览器与 IP 分组的测试统计并按小时聚合
 - 通过 Docker Compose 或预构建镜像一键部署
 
 ## 开发环境
