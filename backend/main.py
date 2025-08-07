@@ -59,15 +59,25 @@ if assets_dir.exists():
 
 
 def mask_ip(ip: str | None) -> str | None:
-    """Partially mask an IPv4 address, gracefully handling ``None`` values.
+    """Return a partially masked representation of ``ip``.
 
-    The previous implementation assumed ``ip`` was always a string which caused
-    ``AttributeError`` when ``None`` was passed (e.g. when a test record had a
-    null ``client_ip``).  This version returns the input unchanged if it is
-    falsy and only performs masking for valid dotted IPv4 strings.
+    This helper is used by the Jinja2 templates when rendering client
+    information.  In production the ``client_ip`` column may contain ``NULL``
+    values (or other unexpected types) which previously resulted in an
+    ``AttributeError`` when ``split`` was called on the non-string object.
+    The function now defensively handles ``None`` and non-string inputs and
+    provides basic masking for both IPv4 and IPv6 addresses.
     """
 
     if not ip:
+        return ip
+    if not isinstance(ip, str):
+        ip = str(ip)
+
+    if ":" in ip:
+        parts = ip.split(":")
+        if len(parts) >= 2:
+            return f"{parts[0]}:***:{parts[-1]}"
         return ip
 
     parts = ip.split(".")
