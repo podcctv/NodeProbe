@@ -34,7 +34,18 @@ app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET"
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 
-def mask_ip(ip: str) -> str:
+def mask_ip(ip: str | None) -> str | None:
+    """Partially mask an IPv4 address, gracefully handling ``None`` values.
+
+    The previous implementation assumed ``ip`` was always a string which caused
+    ``AttributeError`` when ``None`` was passed (e.g. when a test record had a
+    null ``client_ip``).  This version returns the input unchanged if it is
+    falsy and only performs masking for valid dotted IPv4 strings.
+    """
+
+    if not ip:
+        return ip
+
     parts = ip.split(".")
     if len(parts) == 4:
         return f"{parts[0]}.***.***.{parts[3]}"
