@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/tests': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8380',
         changeOrigin: true,
       },
     },
