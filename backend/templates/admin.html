@@ -7,6 +7,10 @@
 <body>
     <h1>Test Records Admin</h1>
     <p><a href="/admin/logout">Logout</a></p>
+    {% if user.must_change_password %}
+    <p style="color:red;">You are using the default password. Please change it.</p>
+    <button onclick="location.href='/admin/password'">Change Password</button>
+    {% endif %}
     <section>
         <h2>Add / Edit Record</h2>
         <form id="recordForm">
