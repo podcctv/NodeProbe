@@ -62,28 +62,46 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const runTests = async () => {
+  const [traceOutput, setTraceOutput] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [uploadProgress, setUploadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
+    null,
+  );
+    const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
+    const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
+    const [speedRunning, setSpeedRunning] = useState(false);
+    const [loadingMsg, setLoadingMsg] = useState('');
+
+    useEffect(() => {
+      runInitialTests();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Run ping/traceroute and a small speedtest once the page loads
+    // and display a loading indicator until all results are recorded.
+    const runInitialTests = async () => {
+      setLoading(true);
+      setLoadingMsg('正在进行 ping Traceroute 测试...');
       try {
-        // Create an initial record and gather client info + ping.
         const res = await fetch('/tests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
         });
         const data = await res.json();
-          setInfo(data);
-          if (data.client_ip) {
-            try {
-              // Run traceroute but ignore the result for now.
-              await fetch(`/traceroute?host=${encodeURIComponent(data.client_ip)}`);
-            } catch (err) {
-              console.error('Traceroute failed', err);
-            }
-          }
-
+        setInfo(data);
+        if (data?.client_ip) {
+          await runPing(data.client_ip);
+          await runTraceroute(data.client_ip, true);
+        }
+        setLoadingMsg('正在进行 Speedtest 测试...');
         try {
-          // Run a basic speed test (multi-thread download/upload).
           const downloadSize = 5 * 1024 * 1024; // 5 MB
           const uploadSize = 2 * 1024 * 1024; // 2 MB
           const chunkSize = downloadSize / 4;
@@ -133,14 +151,15 @@ function App() {
         } catch (err) {
           console.error('Speedtest failed', err);
         }
-
         await loadRecords();
       } catch (err) {
-        console.error('Automatic tests failed', err);
+        console.error('Failed to run initial tests', err);
       } finally {
         setLoading(false);
+        setLoadingMsg('');
       }
     };
+
 
     runTests();
   }, []);
@@ -193,6 +212,7 @@ function App() {
   };
 
 
+
   const runPing = async (host: string) => {
     setPingOutput('Running...');
     try {
@@ -204,14 +224,6 @@ function App() {
       setPingOutput('Ping failed');
     }
   };
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
-        <div>Running tests...</div>
-      </div>
-    );
-  }
-
   const runTraceroute = async (host: string, record = false) => {
     setTraceOutput('Running...');
     try {
@@ -389,16 +401,6 @@ function App() {
                         <td className="px-2 py-1">
                           {typeof r.ping_ms === 'number'
                             ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
-                            : ''}
-                        </td>
-                        <td className="px-2 py-1">
-                          {typeof r.download_mbps === 'number'
-                            ? `${r.download_mbps.toFixed(2)} Mbps`
-                            : ''}
-                        </td>
-                        <td className="px-2 py-1">
-                          {typeof r.upload_mbps === 'number'
-                            ? `${r.upload_mbps.toFixed(2)} Mbps`
                             : ''}
                         </td>
                         <td className="px-2 py-1">
