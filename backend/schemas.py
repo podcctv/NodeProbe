@@ -1,5 +1,6 @@
-from datetime import datetime
-from pydantic import BaseModel
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+from pydantic import BaseModel, field_serializer
 
 
 class TestRecordBase(BaseModel):
@@ -27,6 +28,12 @@ class TestRecordUpdate(TestRecordBase):
 class TestRecord(TestRecordBase):
     id: int
     timestamp: datetime
+
+    @field_serializer("timestamp")
+    def serialize_timestamp(self, dt: datetime, _info):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(ZoneInfo("Asia/Shanghai"))
 
     class Config:
         from_attributes = True
