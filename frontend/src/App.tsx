@@ -143,8 +143,8 @@ function App() {
       });
       if (data?.client_ip) {
         const steps = [
-          { msg: 'Ping', fn: () => runPing(data.client_ip) },
-          { msg: 'Traceroute', fn: () => runTraceroute(data.client_ip, true) },
+          { msg: 'Ping', fn: () => runPing(data.client_ip!) },
+          { msg: 'Traceroute', fn: () => runTraceroute(data.client_ip!, true) },
           {
             msg: 'Speedtest',
             fn: async () => {
