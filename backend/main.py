@@ -85,7 +85,12 @@ templates.env.filters["short_ts"] = short_ts
 @app.on_event("startup")
 def create_default_user():
     db = database.SessionLocal()
-    host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
+    host_ip = os.environ.get("SERVER_IP")
+    if not host_ip:
+        try:
+            host_ip = requests.get("https://api.ipify.org", timeout=5).text.strip()
+        except Exception:
+            host_ip = socket.gethostbyname(socket.gethostname())
     try:
         user = db.query(models.User).first()
         if not user:
