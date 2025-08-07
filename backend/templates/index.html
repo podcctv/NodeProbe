@@ -31,13 +31,14 @@
       {% if info.location %}<li>Location: {{ info.location }}</li>{% endif %}
       {% if info.asn %}<li>ASN: {{ info.asn }}</li>{% endif %}
       {% if info.isp %}<li>ISP: {{ info.isp }}</li>{% endif %}
+      {% if info.ping_ms %}<li>Ping: {{ '%.2f'|format(info.ping_ms) }} ms</li>{% endif %}
       <li>Recorded at: {{ info.timestamp|short_ts }}</li>
     </ul>
 
     <h2>Recent Tests</h2>
     <ul>
       {% for r in records %}
-      <li>{{ r.client_ip|mask_ip }}{% if r.location %} - {{ r.location }}{% endif %} - {{ r.timestamp|short_ts }}</li>
+      <li>{{ r.client_ip|mask_ip }}{% if r.location %} - {{ r.location }}{% endif %}{% if r.ping_ms %} - {{ '%.2f'|format(r.ping_ms) }} ms{% endif %} - {{ r.timestamp|short_ts }}</li>
       {% endfor %}
     </ul>
 

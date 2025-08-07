@@ -90,6 +90,9 @@ function App() {
             )}
             {info.asn && <div>ASN: {info.asn}</div>}
             {info.isp && <div>ISP: {info.isp}</div>}
+            {typeof info.ping_ms === 'number' && (
+              <div>Ping: {info.ping_ms.toFixed(2)} ms</div>
+            )}
             <div className="text-sm text-gray-400">
               Recorded at: {new Date(info.timestamp).toLocaleString()}
             </div>
@@ -109,6 +112,7 @@ function App() {
                   <li key={r.id}>
                     {maskIp(r.client_ip)}
                     {r.location && r.location !== 'Unknown' && ` - ${r.location}`} -{' '}
+                    {typeof r.ping_ms === 'number' && `${r.ping_ms.toFixed(2)} ms - `}
                     {new Date(r.timestamp).toLocaleString()}
                   </li>
                 ))}
