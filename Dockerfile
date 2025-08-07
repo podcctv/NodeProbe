@@ -1,7 +1,7 @@
 # Multi-stage build: build frontend and backend
 
 # Stage 1: build frontend
-FROM node:18 AS frontend-builder
+FROM node:20 AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
