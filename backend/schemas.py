@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_serializer
 
 class TestRecordBase(BaseModel):
     client_ip: str | None = None
+    user_agent: str | None = None
     location: str | None = None
     asn: str | None = None
     isp: str | None = None
@@ -26,6 +27,7 @@ class TestRecordBase(BaseModel):
 
 class TestRecordCreate(BaseModel):
     client_ip: str | None = None
+    user_agent: str | None = None
     location: str | None = None
     asn: str | None = None
     isp: str | None = None
