@@ -295,20 +295,22 @@ function App() {
       if (!reader) return 0;
       let received = 0;
       const start = performance.now();
-      let lastTime = start;
+      let intervalStart = start;
+      let intervalBytes = 0;
       while (true) {
         const { done, value } = await reader.read();
         const now = performance.now();
         if (done) break;
         received += value.length;
         setDownloadProgress({ transferred: received, size });
-        const diff = now - lastTime;
-        if (diff > 0 && value) {
-          const speed = (value.length * 8) / diff / 1000;
-          setCurrentDownloadSpeed(speed);
+        intervalBytes += value.length;
+        if (now - intervalStart >= 1000) {
+          const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
+          setCurrentDownloadSpeed((p) => p * 0.5 + speed * 0.5);
           setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+          intervalBytes = 0;
+          intervalStart = now;
         }
-        lastTime = now;
       }
       const end = performance.now();
       return (size * 8) / (end - start) / 1000;
@@ -317,7 +319,8 @@ function App() {
     const chunkSize = Math.floor(size / threads);
     let received = 0;
     const start = performance.now();
-    let lastTime = start;
+    let intervalStart = start;
+    let intervalBytes = 0;
     const tasks = [] as Promise<void>[];
     for (let i = 0; i < threads; i++) {
       const controller = new AbortController();
@@ -334,13 +337,14 @@ function App() {
             if (done) break;
             received += value.length;
             setDownloadProgress({ transferred: received, size });
-            const diff = now - lastTime;
-            if (diff > 0 && value) {
-              const speed = (value.length * 8) / diff / 1000;
-              setCurrentDownloadSpeed(speed);
+            intervalBytes += value.length;
+            if (now - intervalStart >= 1000) {
+              const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
+              setCurrentDownloadSpeed((p) => p * 0.5 + speed * 0.5);
               setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+              intervalBytes = 0;
+              intervalStart = now;
             }
-            lastTime = now;
           }
         })
       );
@@ -360,19 +364,21 @@ function App() {
         uploadXhrs.current.push(xhr);
         const start = performance.now();
         let lastLoaded = 0;
-        let lastTime = start;
+        let intervalStart = start;
+        let intervalBytes = 0;
         xhr.open('POST', '/speedtest/upload');
         xhr.upload.onprogress = (e) => {
           setUploadProgress({ transferred: e.loaded, size });
           const now = performance.now();
-          const diff = now - lastTime;
           const loadedDiff = e.loaded - lastLoaded;
-          if (diff > 0 && loadedDiff > 0) {
-            const speed = (loadedDiff * 8) / diff / 1000;
-            setCurrentUploadSpeed(speed);
+          intervalBytes += loadedDiff;
+          if (now - intervalStart >= 1000 && intervalBytes > 0) {
+            const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
+            setCurrentUploadSpeed((p) => p * 0.5 + speed * 0.5);
             setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            intervalBytes = 0;
+            intervalStart = now;
           }
-          lastTime = now;
           lastLoaded = e.loaded;
         };
         xhr.onload = () => {
@@ -389,8 +395,8 @@ function App() {
       const chunkSize = Math.floor(size / threads);
       let uploaded = 0;
       const start = performance.now();
-      let lastTime = start;
-      let lastUploaded = 0;
+      let intervalStart = start;
+      let intervalBytes = 0;
       let completed = 0;
       for (let i = 0; i < threads; i++) {
         const xhr = new XMLHttpRequest();
@@ -398,19 +404,19 @@ function App() {
         xhr.open('POST', '/speedtest/upload');
         let prev = 0;
         xhr.upload.onprogress = (e) => {
-          uploaded += e.loaded - prev;
+          const delta = e.loaded - prev;
+          uploaded += delta;
           prev = e.loaded;
           setUploadProgress({ transferred: uploaded, size });
           const now = performance.now();
-          const diff = now - lastTime;
-          const loadedDiff = uploaded - lastUploaded;
-          if (diff > 0 && loadedDiff > 0) {
-            const speed = (loadedDiff * 8) / diff / 1000;
-            setCurrentUploadSpeed(speed);
+          intervalBytes += delta;
+          if (now - intervalStart >= 1000 && intervalBytes > 0) {
+            const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
+            setCurrentUploadSpeed((p) => p * 0.5 + speed * 0.5);
             setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            intervalBytes = 0;
+            intervalStart = now;
           }
-          lastTime = now;
-          lastUploaded = uploaded;
         };
         xhr.onload = () => {
           completed++;
