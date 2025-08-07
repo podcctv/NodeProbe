@@ -373,45 +373,63 @@ function App() {
     setSpeedRunning(true);
     setSpeedResult(null);
 
-    // Single thread
-    const singleDown = await downloadWithProgress(downloadSize, 1);
-    const singleUp = await uploadWithProgress(uploadSize, 1);
-    await fetch('/tests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        test_target: 'speedtest',
-        speedtest_type: 'single',
-        download_mbps: singleDown,
-        upload_mbps: singleUp,
-      }),
+    const speedtestPromise = (async () => {
+      // Single thread
+      const singleDown = await downloadWithProgress(downloadSize, 1);
+      const singleUp = await uploadWithProgress(uploadSize, 1);
+      await fetch('/tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_target: 'speedtest',
+          speedtest_type: 'single',
+          download_mbps: singleDown,
+          upload_mbps: singleUp,
+        }),
+      });
+
+      // Multi thread (8)
+      const multiDown = await downloadWithProgress(downloadSize, 8);
+      const multiUp = await uploadWithProgress(uploadSize, 8);
+      await fetch('/tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_target: 'speedtest',
+          speedtest_type: 'multi',
+          download_mbps: multiDown,
+          upload_mbps: multiUp,
+        }),
+      });
+
+      setSpeedResult({
+        single: { down: singleDown, up: singleUp },
+        multi: { down: multiDown, up: multiUp },
+      });
+      const recs = await loadRecords();
+      if (recs.length > 0) {
+        setInfo(recs[0]);
+      }
+    })();
+
+    speedtestPromise.catch((err) => {
+      console.error('Speedtest failed', err);
     });
 
-    // Multi thread (8)
-    const multiDown = await downloadWithProgress(downloadSize, 8);
-    const multiUp = await uploadWithProgress(uploadSize, 8);
-    await fetch('/tests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        test_target: 'speedtest',
-        speedtest_type: 'multi',
-        download_mbps: multiDown,
-        upload_mbps: multiUp,
-      }),
-    });
-
-    setSpeedResult({
-      single: { down: singleDown, up: singleUp },
-      multi: { down: multiDown, up: multiUp },
-    });
-    const recs = await loadRecords();
-    if (recs.length > 0) {
-      setInfo(recs[0]);
+    try {
+      await Promise.race([
+        speedtestPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Speedtest timeout')), 30000)
+        ),
+      ]);
+    } catch (err) {
+      console.error('Speedtest timed out', err);
+    } finally {
+      setSpeedRunning(false);
+      setCurrentDownloadSpeed(0);
+      setCurrentUploadSpeed(0);
     }
-    setSpeedRunning(false);
-    setCurrentDownloadSpeed(0);
-    setCurrentUploadSpeed(0);
   };
   if (loading) {
     return (
