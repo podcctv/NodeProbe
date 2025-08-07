@@ -62,28 +62,46 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const runTests = async () => {
+  const [traceOutput, setTraceOutput] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [uploadProgress, setUploadProgress] = useState({
+    transferred: 0,
+    size: 0,
+  });
+  const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
+    null,
+  );
+    const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
+    const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
+    const [speedRunning, setSpeedRunning] = useState(false);
+    const [loadingMsg, setLoadingMsg] = useState('');
+
+    useEffect(() => {
+      runInitialTests();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Run ping/traceroute and a small speedtest once the page loads
+    // and display a loading indicator until all results are recorded.
+    const runInitialTests = async () => {
+      setLoading(true);
+      setLoadingMsg('正在进行 ping Traceroute 测试...');
       try {
-        // Create an initial record and gather client info + ping.
         const res = await fetch('/tests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
         });
         const data = await res.json();
-          setInfo(data);
-          if (data.client_ip) {
-            try {
-              // Run traceroute but ignore the result for now.
-              await fetch(`/traceroute?host=${encodeURIComponent(data.client_ip)}`);
-            } catch (err) {
-              console.error('Traceroute failed', err);
-            }
-          }
-
+        setInfo(data);
+        if (data?.client_ip) {
+          await runPing(data.client_ip);
+          await runTraceroute(data.client_ip, true);
+        }
+        setLoadingMsg('正在进行 Speedtest 测试...');
         try {
-          // Run a basic speed test (multi-thread download/upload).
           const downloadSize = 5 * 1024 * 1024; // 5 MB
           const uploadSize = 2 * 1024 * 1024; // 2 MB
           const chunkSize = downloadSize / 4;
@@ -133,14 +151,15 @@ function App() {
         } catch (err) {
           console.error('Speedtest failed', err);
         }
-
         await loadRecords();
       } catch (err) {
-        console.error('Automatic tests failed', err);
+        console.error('Failed to run initial tests', err);
       } finally {
         setLoading(false);
+        setLoadingMsg('');
       }
     };
+
 
     runTests();
   }, []);
@@ -157,10 +176,12 @@ function App() {
   const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
     null,
   );
-    const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
-    const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
-    const [speedRunning, setSpeedRunning] = useState(false);
-    const [loadingMsg, setLoadingMsg] = useState('');
+  const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
+  const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
+  const [currentDownloadSpeed, setCurrentDownloadSpeed] = useState(0);
+  const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
+  const [speedRunning, setSpeedRunning] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
     useEffect(() => {
       runInitialTests();
@@ -189,6 +210,7 @@ function App() {
       setLoading(false);
     }
   };
+
 
 
   const runPing = async (host: string) => {
@@ -234,6 +256,7 @@ function App() {
   async function downloadWithProgress(size: number) {
     setDownloadProgress({ transferred: 0, size });
     setDownloadSpeeds([]);
+    setCurrentDownloadSpeed(0);
     const res = await fetch(`/speedtest/download?size=${size}`);
     const reader = res.body?.getReader();
     if (!reader) return 0;
@@ -249,6 +272,7 @@ function App() {
       const diff = now - lastTime;
       if (diff > 0 && value) {
         const speed = (value.length * 8) / diff / 1000;
+        setCurrentDownloadSpeed(speed);
         setDownloadSpeeds((s) => [...s.slice(-99), speed]);
       }
       lastTime = now;
@@ -260,6 +284,7 @@ function App() {
   function uploadWithProgress(size: number) {
     setUploadProgress({ transferred: 0, size });
     setUploadSpeeds([]);
+    setCurrentUploadSpeed(0);
     return new Promise<number>((resolve) => {
       const xhr = new XMLHttpRequest();
       const start = performance.now();
@@ -273,6 +298,7 @@ function App() {
         const loadedDiff = e.loaded - lastLoaded;
         if (diff > 0 && loadedDiff > 0) {
           const speed = (loadedDiff * 8) / diff / 1000;
+          setCurrentUploadSpeed(speed);
           setUploadSpeeds((s) => [...s.slice(-99), speed]);
         }
         lastTime = now;
@@ -291,6 +317,8 @@ function App() {
     setSpeedResult(null);
     setDownloadSpeeds([]);
     setUploadSpeeds([]);
+    setCurrentDownloadSpeed(0);
+    setCurrentUploadSpeed(0);
     const down = await downloadWithProgress(downloadSize);
     const up = await uploadWithProgress(uploadSize);
     setSpeedResult({ down, up });
@@ -306,6 +334,8 @@ function App() {
     });
     await loadRecords();
     setSpeedRunning(false);
+    setCurrentDownloadSpeed(0);
+    setCurrentUploadSpeed(0);
   };
   if (loading) {
     return (
@@ -385,16 +415,6 @@ function App() {
                             : ''}
                         </td>
                         <td className="px-2 py-1">
-                          {typeof r.download_mbps === 'number'
-                            ? `${r.download_mbps.toFixed(2)} Mbps`
-                            : ''}
-                        </td>
-                        <td className="px-2 py-1">
-                          {typeof r.upload_mbps === 'number'
-                            ? `${r.upload_mbps.toFixed(2)} Mbps`
-                            : ''}
-                        </td>
-                        <td className="px-2 py-1">
                           {new Date(r.timestamp).toLocaleString()}
                         </td>
                       </tr>
@@ -454,6 +474,20 @@ function App() {
           </div>
           <div>Download Progress: {formatProgress(downloadProgress)}</div>
           <div>Upload Progress: {formatProgress(uploadProgress)}</div>
+          <div className="flex justify-center space-x-4">
+            <div className="bg-black bg-opacity-50 rounded p-2 w-40">
+              <div>Download</div>
+              <div className="text-lg">
+                {currentDownloadSpeed.toFixed(2)} Mbps
+              </div>
+            </div>
+            <div className="bg-black bg-opacity-50 rounded p-2 w-40">
+              <div>Upload</div>
+              <div className="text-lg">
+                {currentUploadSpeed.toFixed(2)} Mbps
+              </div>
+            </div>
+          </div>
           {downloadSpeeds.length > 0 && (
             <SpeedChart
               title="Download Speed (Mbps)"
