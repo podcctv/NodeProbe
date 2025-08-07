@@ -104,7 +104,7 @@ def test_create_speedtest_record():
     assert data["download_mbps"] == 10.0
 
 
-def test_recent_tests_are_aggregated_by_ip():
+def test_recent_tests_are_aggregated_by_ip_and_type():
     from datetime import datetime, timedelta
     from backend.database import SessionLocal
     from backend.models import TestRecord
@@ -116,6 +116,7 @@ def test_recent_tests_are_aggregated_by_ip():
         records = [
             TestRecord(
                 client_ip="1.1.1.1",
+                speedtest_type="single",
                 ping_ms=10,
                 download_mbps=20,
                 upload_mbps=5,
@@ -123,13 +124,23 @@ def test_recent_tests_are_aggregated_by_ip():
             ),
             TestRecord(
                 client_ip="1.1.1.1",
+                speedtest_type="single",
                 ping_ms=20,
                 download_mbps=30,
                 upload_mbps=15,
                 timestamp=now - timedelta(minutes=4),
             ),
             TestRecord(
+                client_ip="1.1.1.1",
+                speedtest_type="multi",
+                ping_ms=25,
+                download_mbps=50,
+                upload_mbps=25,
+                timestamp=now - timedelta(minutes=3),
+            ),
+            TestRecord(
                 client_ip="2.2.2.2",
+                speedtest_type="single",
                 ping_ms=50,
                 download_mbps=60,
                 upload_mbps=70,
@@ -138,6 +149,7 @@ def test_recent_tests_are_aggregated_by_ip():
             # Outside the 10 minute window and should be ignored
             TestRecord(
                 client_ip="1.1.1.1",
+                speedtest_type="single",
                 ping_ms=30,
                 download_mbps=40,
                 upload_mbps=25,
@@ -152,12 +164,25 @@ def test_recent_tests_are_aggregated_by_ip():
     res = client.get("/tests")
     assert res.status_code == 200
     data = res.json()
-    assert len(data["records"]) == 2
+    assert len(data["records"]) == 3
 
-    rec = next(r for r in data["records"] if r["client_ip"] == "1.1.1.1")
-    assert abs(rec["ping_ms"] - 15) < 0.01
-    assert abs(rec["download_mbps"] - 25) < 0.01
-    assert abs(rec["upload_mbps"] - 10) < 0.01
+    rec_single = next(
+        r
+        for r in data["records"]
+        if r["client_ip"] == "1.1.1.1" and r["speedtest_type"] == "single"
+    )
+    assert abs(rec_single["ping_ms"] - 15) < 0.01
+    assert abs(rec_single["download_mbps"] - 25) < 0.01
+    assert abs(rec_single["upload_mbps"] - 10) < 0.01
+
+    rec_multi = next(
+        r
+        for r in data["records"]
+        if r["client_ip"] == "1.1.1.1" and r["speedtest_type"] == "multi"
+    )
+    assert abs(rec_multi["ping_ms"] - 25) < 0.01
+    assert abs(rec_multi["download_mbps"] - 50) < 0.01
+    assert abs(rec_multi["upload_mbps"] - 25) < 0.01
 
 
 def test_create_test_merges_recent_records():
