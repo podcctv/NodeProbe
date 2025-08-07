@@ -42,7 +42,11 @@ function App() {
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
         });
-        setInfo(await res.json());
+        const data = await res.json();
+        setInfo(data);
+        if (data.client_ip) {
+          setPingTarget(data.client_ip);
+        }
       } catch (err) {
         console.error('Failed to collect info', err);
       }

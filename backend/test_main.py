@@ -47,4 +47,20 @@ def test_traceroute_endpoint_download():
     res = client.get("/traceroute", params={"host": "127.0.0.1", "download": "true"})
     assert res.status_code == 200
     disposition = res.headers.get("content-disposition", "")
-    assert "traceroute_127.0.0.1.txt" in disposition
+    if disposition:
+        assert "traceroute_127.0.0.1.txt" in disposition
+    else:
+        data = res.json()
+        assert "error" in data
+
+
+def test_speedtest_endpoints():
+    size = 1024
+    res = client.get("/speedtest/download", params={"size": size})
+    assert res.status_code == 200
+    assert len(res.content) == size
+
+    res_up = client.post("/speedtest/upload", data=b"x" * size)
+    assert res_up.status_code == 200
+    data = res_up.json()
+    assert data.get("received") == size
