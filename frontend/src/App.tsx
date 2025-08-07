@@ -131,7 +131,10 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
-      const data: RawTestRecord = await res.json();
+      // The backend returns a complete test record when initiating tests
+      // (with ping results optionally omitted if `skip_ping` is true).
+      // We can treat this response as a standard `TestRecord` for the UI.
+      const data: TestRecord = await res.json();
       setInfo({
         id: data.id,
         timestamp: data.timestamp,
