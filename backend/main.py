@@ -1,13 +1,20 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import requests
 import subprocess
+
 from . import models, schemas, database
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 # Allow the frontend dev server or any origin to access the API
 app.add_middleware(
@@ -19,21 +26,54 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def read_root():
-    """Simple health check endpoint.
-
-    Returns a friendly message indicating the API is running.
-    """
-    return {"message": "NodeProbe API is running"}
-
-
 def get_db():
     db = database.SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def read_root(request: Request, db: Session = Depends(get_db)):
+    """Default homepage.
+
+    Records basic information about the visiting client and displays recent
+    test results.  The page also provides a simple interface for running manual
+    ping tests against a host.
+    """
+
+    client_ip = request.client.host
+    data = {"client_ip": client_ip, "test_target": "default"}
+
+    try:
+        resp = requests.get(f"https://ipapi.co/{client_ip}/json/")
+        if resp.ok:
+            geo = resp.json()
+            data["location"] = f"{geo.get('city')}, {geo.get('country_name')}"
+            data["asn"] = geo.get("asn")
+            data["isp"] = geo.get("org")
+    except Exception:
+        pass
+
+    db_record = models.TestRecord(**data)
+    db.add(db_record)
+    db.commit()
+    db.refresh(db_record)
+
+    records = (
+        db.query(models.TestRecord)
+        .order_by(models.TestRecord.id.desc())
+        .limit(5)
+        .all()
+    )
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "info": db_record, "records": records}
+    )
+@app.get("/api")
+def api_root():
+    """Simple health check endpoint for programmatic access."""
+    return {"message": "NodeProbe API is running"}
 
 
 @app.get("/tests", response_model=schemas.TestsResponse)
