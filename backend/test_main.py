@@ -6,7 +6,7 @@ client = TestClient(app)
 
 
 def test_homepage_creates_record_and_returns_html():
-    res = client.get("/")
+    res = client.get("/probe")
     assert res.status_code == 200
     assert "Your Connection Info" in res.text
 
@@ -26,7 +26,7 @@ def test_homepage_handles_null_client_ip():
         db.add(record)
         db.commit()
 
-        res = client.get("/")
+        res = client.get("/probe")
         assert res.status_code == 200
     finally:
         # Clean up the record to avoid side effects between tests
