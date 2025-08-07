@@ -517,60 +517,60 @@ function App() {
           <div>No info available</div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2 bg-black bg-opacity-50 p-4 rounded">
           <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
           {records.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left bg-black bg-opacity-50 border border-green-600">
+              <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
                 <thead>
                   <tr>
-                    <th className="px-2 py-1">IP</th>
-                    <th className="px-2 py-1">Location</th>
-                    <th className="px-2 py-1">ASN</th>
-                    <th className="px-2 py-1">ISP</th>
-                    <th className="px-2 py-1">Ping</th>
-                    <th className="px-2 py-1">⬇️ 单线程</th>
-                    <th className="px-2 py-1">⬆️ 单线程</th>
-                    <th className="px-2 py-1">⬇️ 八线程</th>
-                    <th className="px-2 py-1">⬆️ 八线程</th>
-                    <th className="px-2 py-1">Recorded</th>
+                    <th className="px-2 py-1 border border-green-700">IP</th>
+                    <th className="px-2 py-1 border border-green-700">Location</th>
+                    <th className="px-2 py-1 border border-green-700">ASN</th>
+                    <th className="px-2 py-1 border border-green-700">ISP</th>
+                    <th className="px-2 py-1 border border-green-700">Ping</th>
+                    <th className="px-2 py-1 border border-green-700">⬇️ 单线程</th>
+                    <th className="px-2 py-1 border border-green-700">⬆️ 单线程</th>
+                    <th className="px-2 py-1 border border-green-700">⬇️ 八线程</th>
+                    <th className="px-2 py-1 border border-green-700">⬆️ 八线程</th>
+                    <th className="px-2 py-1 border border-green-700">Recorded</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-green-900">
+                <tbody>
                   {records.slice(0, 10).map((r) => (
                     <tr key={r.id}>
-                      <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">{maskIp(r.client_ip)}</td>
+                      <td className="px-2 py-1 border border-green-700">
                         {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
                       </td>
-                      <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
-                      <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">{r.asn || 'Unknown'}</td>
+                      <td className="px-2 py-1 border border-green-700">{r.isp || 'Unknown'}</td>
+                      <td className="px-2 py-1 border border-green-700">
                         {typeof r.ping_ms === 'number'
                           ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
                           : ''}
                       </td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">
                         {typeof r.download_single_mbps === 'number'
                           ? `${r.download_single_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">
                         {typeof r.upload_single_mbps === 'number'
                           ? `${r.upload_single_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">
                         {typeof r.download_multi_mbps === 'number'
                           ? `${r.download_multi_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">
                         {typeof r.upload_multi_mbps === 'number'
                           ? `${r.upload_multi_mbps.toFixed(2)} Mbps`
                           : ''}
                       </td>
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 border border-green-700">
                         {new Date(r.timestamp).toLocaleString()}
                       </td>
                     </tr>
@@ -585,7 +585,7 @@ function App() {
           )}
         </div>
 
-        <div className="space-y-2 text-center">
+        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
           <h2 className="text-xl mb-2">Auto Ping Test</h2>
           {pingOutput && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
@@ -594,7 +594,7 @@ function App() {
           )}
         </div>
 
-        <div className="space-y-2 text-center">
+        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
           <h2 className="text-xl mb-2">Traceroute</h2>
           {traceOutput && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
@@ -603,7 +603,7 @@ function App() {
           )}
         </div>
 
-        <div className="space-y-2 text-center">
+        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
           <h2 className="text-xl mb-2">Speed Test</h2>
           <div className="space-y-2">
             <div className="flex justify-center space-x-2">
