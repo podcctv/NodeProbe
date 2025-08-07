@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+import re
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,27 @@ def get_db():
         db.close()
 
 
+def _ping(host: str) -> float | None:
+    """Return the ping time to ``host`` in milliseconds.
+
+    Returns ``None`` if the command fails or the output cannot be parsed.
+    """
+    try:
+        result = subprocess.run(
+            ["ping", "-c", "1", host],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
+            if match:
+                return float(match.group(1))
+    except Exception:
+        pass
+    return None
+
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def read_root(request: Request, db: Session = Depends(get_db)):
     """Default homepage.
@@ -64,6 +86,10 @@ def read_root(request: Request, db: Session = Depends(get_db)):
 
     client_ip = request.client.host
     data = {"client_ip": client_ip, "test_target": "default"}
+
+    ping_ms = _ping(client_ip)
+    if ping_ms is not None:
+        data["ping_ms"] = ping_ms
 
     try:
         resp = requests.get(f"https://ipapi.co/{client_ip}/json/")
@@ -137,6 +163,12 @@ def create_test(
                 data.setdefault("isp", geo.get("org"))
         except Exception:
             pass
+
+    if not data.get("ping_ms"):
+        host = data.get("test_target") or client_ip
+        ping_ms = _ping(host)
+        if ping_ms is not None:
+            data["ping_ms"] = ping_ms
 
     db_record = models.TestRecord(**data)
     db.add(db_record)
