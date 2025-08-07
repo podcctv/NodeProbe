@@ -161,7 +161,7 @@ function App() {
     } catch (err) {
       console.error('Failed to run initial tests', err);
     } finally {
-      await loadRecords();
+      loadRecords().catch((err) => console.error('Failed to load previous tests', err));
       setLoading(false);
     }
   };
@@ -414,10 +414,13 @@ function App() {
         ...(prev || {}),
         [threads === 1 ? 'single' : 'multi']: { down, up },
       }));
-      const recs = await loadRecords();
-      if (recs.length > 0) {
-        setInfo(recs[0]);
-      }
+      loadRecords()
+        .then((recs) => {
+          if (recs.length > 0) {
+            setInfo(recs[0]);
+          }
+        })
+        .catch((err) => console.error('Failed to load previous tests', err));
     })();
 
     speedtestPromise.catch((err) => {
