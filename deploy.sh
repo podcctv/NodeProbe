@@ -3,7 +3,8 @@ set -e
 
 # Absolute path of script
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
-DATA_DIR="/opt/nodeprobe/data"
+# Use a persistent data directory that matches the project name
+DATA_DIR="/opt/NodeProbe/data"
 
 mkdir -p "$DATA_DIR"
 cd "$BASE_DIR"
