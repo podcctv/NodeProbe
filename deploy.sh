@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-pip install -r backend/requirements.txt
-npm --prefix frontend install
+# Absolute path of script
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATA_DIR="/opt/nodeprobe/data"
 
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
-npm --prefix frontend run dev
+mkdir -p "$DATA_DIR"
+cd "$BASE_DIR"
+
+git pull
+
+docker compose up -d --build

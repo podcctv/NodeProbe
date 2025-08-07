@@ -1,0 +1,9 @@
+version: '3'
+services:
+  nodeprobe:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - /opt/nodeprobe/data:/app/data
+    restart: unless-stopped
