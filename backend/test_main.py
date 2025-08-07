@@ -20,6 +20,7 @@ def test_ping_endpoint_localhost():
     data = res.json()
     assert "output" in data
     assert "ttl" in data["output"]
+    assert "ping_ms" in data
 
 
 def test_traceroute_endpoint_download():

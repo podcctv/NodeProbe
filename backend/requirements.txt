@@ -5,3 +5,4 @@ pydantic
 requests
 jinja2
 httpx
+speedtest-cli
