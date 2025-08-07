@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import SpeedChart from './SpeedChart';
 
-interface TestRecord {
+interface RawTestRecord {
   id: number;
   timestamp: string;
   client_ip?: string | null;
@@ -9,10 +9,8 @@ interface TestRecord {
   asn?: string | null;
   isp?: string | null;
   ping_ms?: number | null;
-
   ping_min_ms?: number | null;
   ping_max_ms?: number | null;
-
   download_mbps?: number | null;
   upload_mbps?: number | null;
   speedtest_type?: string | null;
@@ -21,9 +19,25 @@ interface TestRecord {
   test_target?: string | null;
 }
 
+interface AggregatedRecord {
+  id: number;
+  timestamp: string;
+  client_ip?: string | null;
+  location?: string | null;
+  asn?: string | null;
+  isp?: string | null;
+  ping_ms?: number | null;
+  ping_min_ms?: number | null;
+  ping_max_ms?: number | null;
+  download_single_mbps?: number | null;
+  upload_single_mbps?: number | null;
+  download_multi_mbps?: number | null;
+  upload_multi_mbps?: number | null;
+}
+
 interface TestsResponse {
   message?: string;
-  records: TestRecord[];
+  records: RawTestRecord[];
 }
 
 function maskIp(ip?: string | null) {
@@ -36,8 +50,8 @@ function maskIp(ip?: string | null) {
 }
 
 function App() {
-  const [info, setInfo] = useState<TestRecord | null>(null);
-  const [records, setRecords] = useState<TestRecord[]>([]);
+  const [info, setInfo] = useState<AggregatedRecord | null>(null);
+  const [records, setRecords] = useState<AggregatedRecord[]>([]);
   const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
   const [pingOutput, setPingOutput] = useState<string | null>(null);
 
@@ -54,14 +68,65 @@ function App() {
             typeof r.download_mbps === 'number' ||
             typeof r.upload_mbps === 'number')
       );
-      setRecords(filtered);
-      if (filtered.length > 0) {
-        setInfo(filtered[0]);
+
+      const map = new Map<string, AggregatedRecord>();
+      filtered.forEach((r) => {
+        const key = r.client_ip as string;
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, {
+            id: r.id,
+            timestamp: r.timestamp,
+            client_ip: r.client_ip,
+            location: r.location,
+            asn: r.asn,
+            isp: r.isp,
+            ping_ms: r.ping_ms,
+            ping_min_ms: r.ping_min_ms,
+            ping_max_ms: r.ping_max_ms,
+            download_single_mbps:
+              r.speedtest_type === 'single' ? r.download_mbps : undefined,
+            upload_single_mbps:
+              r.speedtest_type === 'single' ? r.upload_mbps : undefined,
+            download_multi_mbps:
+              r.speedtest_type === 'multi' ? r.download_mbps : undefined,
+            upload_multi_mbps:
+              r.speedtest_type === 'multi' ? r.upload_mbps : undefined,
+          });
+        } else {
+          if (new Date(r.timestamp) > new Date(existing.timestamp)) {
+            existing.timestamp = r.timestamp;
+            existing.location = r.location;
+            existing.asn = r.asn;
+            existing.isp = r.isp;
+          }
+          if (typeof r.ping_ms === 'number') {
+            existing.ping_ms = r.ping_ms;
+            existing.ping_min_ms = r.ping_min_ms;
+            existing.ping_max_ms = r.ping_max_ms;
+          }
+          if (r.speedtest_type === 'single') {
+            existing.download_single_mbps = r.download_mbps;
+            existing.upload_single_mbps = r.upload_mbps;
+          }
+          if (r.speedtest_type === 'multi') {
+            existing.download_multi_mbps = r.download_mbps;
+            existing.upload_multi_mbps = r.upload_mbps;
+          }
+        }
+      });
+
+      const agg = Array.from(map.values()).sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setRecords(agg);
+      if (agg.length > 0) {
+        setInfo(agg[0]);
       }
       if (data.message) {
         setRecordsMessage(data.message);
       }
-      return filtered;
+      return agg;
     } catch (err) {
       console.error('Failed to load previous tests', err);
       return [];
@@ -78,9 +143,13 @@ function App() {
     transferred: 0,
     size: 0,
   });
-  const [speedResult, setSpeedResult] = useState<{ down: number; up: number } | null>(
-    null,
-  );
+  const [speedResult, setSpeedResult] = useState<
+    | {
+        single: { down: number; up: number };
+        multi: { down: number; up: number };
+      }
+    | null
+  >(null);
   const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
   const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
   const [currentDownloadSpeed, setCurrentDownloadSpeed] = useState(0);
@@ -102,8 +171,18 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
-      const data = await res.json();
-      setInfo(data);
+      const data: RawTestRecord = await res.json();
+      setInfo({
+        id: data.id,
+        timestamp: data.timestamp,
+        client_ip: data.client_ip,
+        location: data.location,
+        asn: data.asn,
+        isp: data.isp,
+        ping_ms: data.ping_ms,
+        ping_min_ms: data.ping_min_ms,
+        ping_max_ms: data.ping_max_ms,
+      });
       if (data?.client_ip) {
         await runPing(data.client_ip);
         await runTraceroute(data.client_ip, true);
@@ -159,84 +238,172 @@ function App() {
     return `${transferredMB}M/${sizeMB}M ${percent}%`;
     }
 
-  async function downloadWithProgress(size: number) {
+  async function downloadWithProgress(size: number, threads = 1) {
     setDownloadProgress({ transferred: 0, size });
     setDownloadSpeeds([]);
     setCurrentDownloadSpeed(0);
-    const res = await fetch(`/speedtest/download?size=${size}`);
-    const reader = res.body?.getReader();
-    if (!reader) return 0;
+    if (threads === 1) {
+      const res = await fetch(`/speedtest/download?size=${size}`);
+      const reader = res.body?.getReader();
+      if (!reader) return 0;
+      let received = 0;
+      const start = performance.now();
+      let lastTime = start;
+      while (true) {
+        const { done, value } = await reader.read();
+        const now = performance.now();
+        if (done) break;
+        received += value.length;
+        setDownloadProgress({ transferred: received, size });
+        const diff = now - lastTime;
+        if (diff > 0 && value) {
+          const speed = (value.length * 8) / diff / 1000;
+          setCurrentDownloadSpeed(speed);
+          setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+        }
+        lastTime = now;
+      }
+      const end = performance.now();
+      return (size * 8) / (end - start) / 1000;
+    }
+
+    const chunkSize = Math.floor(size / threads);
     let received = 0;
     const start = performance.now();
     let lastTime = start;
-    while (true) {
-      const { done, value } = await reader.read();
-      const now = performance.now();
-      if (done) break;
-      received += value.length;
-      setDownloadProgress({ transferred: received, size });
-      const diff = now - lastTime;
-      if (diff > 0 && value) {
-        const speed = (value.length * 8) / diff / 1000;
-        setCurrentDownloadSpeed(speed);
-        setDownloadSpeeds((s) => [...s.slice(-99), speed]);
-      }
-      lastTime = now;
+    const tasks = [];
+    for (let i = 0; i < threads; i++) {
+      tasks.push(
+        fetch(`/speedtest/download?size=${chunkSize}`).then(async (res) => {
+          const reader = res.body?.getReader();
+          if (!reader) return;
+          while (true) {
+            const { done, value } = await reader.read();
+            const now = performance.now();
+            if (done) break;
+            received += value.length;
+            setDownloadProgress({ transferred: received, size });
+            const diff = now - lastTime;
+            if (diff > 0 && value) {
+              const speed = (value.length * 8) / diff / 1000;
+              setCurrentDownloadSpeed(speed);
+              setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+            }
+            lastTime = now;
+          }
+        })
+      );
     }
+    await Promise.all(tasks);
     const end = performance.now();
-    return ((size * 8) / (end - start) / 1000);
+    return (size * 8) / (end - start) / 1000;
   }
 
-  function uploadWithProgress(size: number) {
+  function uploadWithProgress(size: number, threads = 1) {
     setUploadProgress({ transferred: 0, size });
     setUploadSpeeds([]);
     setCurrentUploadSpeed(0);
+    if (threads === 1) {
+      return new Promise<number>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const start = performance.now();
+        let lastLoaded = 0;
+        let lastTime = start;
+        xhr.open('POST', '/speedtest/upload');
+        xhr.upload.onprogress = (e) => {
+          setUploadProgress({ transferred: e.loaded, size });
+          const now = performance.now();
+          const diff = now - lastTime;
+          const loadedDiff = e.loaded - lastLoaded;
+          if (diff > 0 && loadedDiff > 0) {
+            const speed = (loadedDiff * 8) / diff / 1000;
+            setCurrentUploadSpeed(speed);
+            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+          }
+          lastTime = now;
+          lastLoaded = e.loaded;
+        };
+        xhr.onload = () => {
+          const end = performance.now();
+          resolve((size * 8) / (end - start) / 1000);
+        };
+        xhr.send(new Uint8Array(size));
+      });
+    }
+
     return new Promise<number>((resolve) => {
-      const xhr = new XMLHttpRequest();
+      const chunkSize = Math.floor(size / threads);
+      let uploaded = 0;
       const start = performance.now();
-      let lastLoaded = 0;
       let lastTime = start;
-      xhr.open('POST', '/speedtest/upload');
-      xhr.upload.onprogress = (e) => {
-        setUploadProgress({ transferred: e.loaded, size });
-        const now = performance.now();
-        const diff = now - lastTime;
-        const loadedDiff = e.loaded - lastLoaded;
-        if (diff > 0 && loadedDiff > 0) {
-          const speed = (loadedDiff * 8) / diff / 1000;
-          setCurrentUploadSpeed(speed);
-          setUploadSpeeds((s) => [...s.slice(-99), speed]);
-        }
-        lastTime = now;
-        lastLoaded = e.loaded;
-      };
-      xhr.onload = () => {
-        const end = performance.now();
-        resolve((size * 8) / (end - start) / 1000);
-      };
-      xhr.send(new Uint8Array(size));
+      let lastUploaded = 0;
+      let completed = 0;
+      for (let i = 0; i < threads; i++) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/speedtest/upload');
+        let prev = 0;
+        xhr.upload.onprogress = (e) => {
+          uploaded += e.loaded - prev;
+          prev = e.loaded;
+          setUploadProgress({ transferred: uploaded, size });
+          const now = performance.now();
+          const diff = now - lastTime;
+          const loadedDiff = uploaded - lastUploaded;
+          if (diff > 0 && loadedDiff > 0) {
+            const speed = (loadedDiff * 8) / diff / 1000;
+            setCurrentUploadSpeed(speed);
+            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+          }
+          lastTime = now;
+          lastUploaded = uploaded;
+        };
+        xhr.onload = () => {
+          completed++;
+          if (completed === threads) {
+            const end = performance.now();
+            resolve((size * 8) / (end - start) / 1000);
+          }
+        };
+        xhr.send(new Uint8Array(chunkSize));
+      }
     });
   }
 
   const runSpeedtest = async (downloadSize: number, uploadSize: number) => {
     setSpeedRunning(true);
     setSpeedResult(null);
-    setDownloadSpeeds([]);
-    setUploadSpeeds([]);
-    setCurrentDownloadSpeed(0);
-    setCurrentUploadSpeed(0);
-    const down = await downloadWithProgress(downloadSize);
-    const up = await uploadWithProgress(uploadSize);
-    setSpeedResult({ down, up });
+
+    // Single thread
+    const singleDown = await downloadWithProgress(downloadSize, 1);
+    const singleUp = await uploadWithProgress(uploadSize, 1);
     await fetch('/tests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         test_target: 'speedtest',
-        speedtest_type: `${downloadSize / 1024 / 1024}M`,
-        download_mbps: down,
-        upload_mbps: up,
+        speedtest_type: 'single',
+        download_mbps: singleDown,
+        upload_mbps: singleUp,
       }),
+    });
+
+    // Multi thread (8)
+    const multiDown = await downloadWithProgress(downloadSize, 8);
+    const multiUp = await uploadWithProgress(uploadSize, 8);
+    await fetch('/tests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        test_target: 'speedtest',
+        speedtest_type: 'multi',
+        download_mbps: multiDown,
+        upload_mbps: multiUp,
+      }),
+    });
+
+    setSpeedResult({
+      single: { down: singleDown, up: singleUp },
+      multi: { down: multiDown, up: multiUp },
     });
     const recs = await loadRecords();
     if (recs.length > 0) {
@@ -246,8 +413,6 @@ function App() {
     setCurrentDownloadSpeed(0);
     setCurrentUploadSpeed(0);
   };
-  const singleRecords = records.filter((r) => r.speedtest_type === 'single');
-  const multiRecords = records.filter((r) => r.speedtest_type === 'multi');
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
@@ -282,122 +447,72 @@ function App() {
 
         <div className="space-y-2">
           <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-lg mb-2 text-center">Single Thread</h3>
-              {singleRecords.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 text-left">IP</th>
-                        <th className="px-2 py-1 text-left">Location</th>
-                        <th className="px-2 py-1 text-left">ASN</th>
-                        <th className="px-2 py-1 text-left">ISP</th>
-                        <th className="px-2 py-1 text-left">Ping</th>
-                        <th className="px-2 py-1 text-left">⬇️ Download</th>
-                        <th className="px-2 py-1 text-left">⬆️ Upload</th>
-                        <th className="px-2 py-1 text-left">Recorded</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {singleRecords.slice(0, 10).map((r) => (
-                        <tr key={r.id}>
-                          <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
-                          <td className="px-2 py-1">
-                            {r.location && r.location !== 'Unknown'
-                              ? r.location
-                              : 'Unknown'}
-                          </td>
-                          <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
-                          <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
-                          <td className="px-2 py-1">
-                            {typeof r.ping_ms === 'number'
-                              ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {typeof r.download_mbps === 'number'
-                              ? `${r.download_mbps.toFixed(2)} Mbps`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {typeof r.upload_mbps === 'number'
-                              ? `${r.upload_mbps.toFixed(2)} Mbps`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {new Date(r.timestamp).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-sm text-center text-gray-400">
-                  {recordsMessage || 'No single-thread test records found.'}
-                </div>
-              )}
+          {records.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-1 text-left">IP</th>
+                    <th className="px-2 py-1 text-left">Location</th>
+                    <th className="px-2 py-1 text-left">ASN</th>
+                    <th className="px-2 py-1 text-left">ISP</th>
+                    <th className="px-2 py-1 text-left">Ping</th>
+                    <th className="px-2 py-1 text-left">⬇️ 单线程</th>
+                    <th className="px-2 py-1 text-left">⬆️ 单线程</th>
+                    <th className="px-2 py-1 text-left">⬇️ 八线程</th>
+                    <th className="px-2 py-1 text-left">⬆️ 八线程</th>
+                    <th className="px-2 py-1 text-left">Recorded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.slice(0, 10).map((r) => (
+                    <tr key={r.id}>
+                      <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
+                      <td className="px-2 py-1">
+                        {r.location && r.location !== 'Unknown'
+                          ? r.location
+                          : 'Unknown'}
+                      </td>
+                      <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
+                      <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
+                      <td className="px-2 py-1">
+                        {typeof r.ping_ms === 'number'
+                          ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
+                          : ''}
+                      </td>
+                      <td className="px-2 py-1">
+                        {typeof r.download_single_mbps === 'number'
+                          ? `${r.download_single_mbps.toFixed(2)} Mbps`
+                          : ''}
+                      </td>
+                      <td className="px-2 py-1">
+                        {typeof r.upload_single_mbps === 'number'
+                          ? `${r.upload_single_mbps.toFixed(2)} Mbps`
+                          : ''}
+                      </td>
+                      <td className="px-2 py-1">
+                        {typeof r.download_multi_mbps === 'number'
+                          ? `${r.download_multi_mbps.toFixed(2)} Mbps`
+                          : ''}
+                      </td>
+                      <td className="px-2 py-1">
+                        {typeof r.upload_multi_mbps === 'number'
+                          ? `${r.upload_multi_mbps.toFixed(2)} Mbps`
+                          : ''}
+                      </td>
+                      <td className="px-2 py-1">
+                        {new Date(r.timestamp).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <h3 className="text-lg mb-2 text-center">Multi Thread</h3>
-              {multiRecords.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 text-left">IP</th>
-                        <th className="px-2 py-1 text-left">Location</th>
-                        <th className="px-2 py-1 text-left">ASN</th>
-                        <th className="px-2 py-1 text-left">ISP</th>
-                        <th className="px-2 py-1 text-left">Ping</th>
-                        <th className="px-2 py-1 text-left">⬇️ Download</th>
-                        <th className="px-2 py-1 text-left">⬆️ Upload</th>
-                        <th className="px-2 py-1 text-left">Recorded</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {multiRecords.slice(0, 10).map((r) => (
-                        <tr key={r.id}>
-                          <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
-                          <td className="px-2 py-1">
-                            {r.location && r.location !== 'Unknown'
-                              ? r.location
-                              : 'Unknown'}
-                          </td>
-                          <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
-                          <td className="px-2 py-1">{r.isp || 'Unknown'}</td>
-                          <td className="px-2 py-1">
-                            {typeof r.ping_ms === 'number'
-                              ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {typeof r.download_mbps === 'number'
-                              ? `${r.download_mbps.toFixed(2)} Mbps`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {typeof r.upload_mbps === 'number'
-                              ? `${r.upload_mbps.toFixed(2)} Mbps`
-                              : ''}
-                          </td>
-                          <td className="px-2 py-1">
-                            {new Date(r.timestamp).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-sm text-center text-gray-400">
-                  {recordsMessage || 'No multi-thread test records found.'}
-                </div>
-              )}
+          ) : (
+            <div className="text-sm text-center text-gray-400">
+              {recordsMessage || 'No test records found.'}
             </div>
-          </div>
+          )}
         </div>
 
         <div className="space-y-2 text-center">
@@ -479,7 +594,7 @@ function App() {
           )}
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
-              {`⬇️ Download: ${speedResult.down.toFixed(2)} Mbps\n⬆️ Upload: ${speedResult.up.toFixed(2)} Mbps`}
+              {`Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} Mbps ⬆️ ${speedResult.single.up.toFixed(2)} Mbps\nMulti Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} Mbps ⬆️ ${speedResult.multi.up.toFixed(2)} Mbps`}
             </pre>
           )}
         </div>

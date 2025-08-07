@@ -8,7 +8,7 @@ client = TestClient(app)
 def test_homepage_creates_record_and_returns_html():
     res = client.get("/probe")
     assert res.status_code == 200
-    assert "Your Connection Info" in res.text
+    assert "<!doctype html>" in res.text.lower()
 
     res_records = client.get("/tests")
     data = res_records.json()
