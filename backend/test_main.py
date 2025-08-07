@@ -66,6 +66,7 @@ def test_speedtest_endpoints():
     assert data.get("received") == size
 
 
+
 def test_register_and_login_requires_password_change():
     import uuid
 
@@ -86,3 +87,17 @@ def test_register_and_login_requires_password_change():
     )
     assert res_login.status_code == 303
     assert res_login.headers["location"] == "/admin/password"
+
+def test_create_speedtest_record():
+    payload = {
+        "test_target": "speedtest",
+        "speedtest_type": "single",
+        "download_mbps": 10.0,
+        "upload_mbps": 5.0,
+    }
+    res = client.post("/tests", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["speedtest_type"] == "single"
+    assert data["download_mbps"] == 10.0
+

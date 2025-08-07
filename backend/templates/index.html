@@ -75,6 +75,14 @@
 
     <h2>Speed Test</h2>
     <button onclick="runSpeedtest()">Run Speed Test</button>
+    <div>
+      <div>Download Progress</div>
+      <progress id="download-progress" max="100" value="0"></progress>
+    </div>
+    <div>
+      <div>Upload Progress</div>
+      <progress id="upload-progress" max="100" value="0"></progress>
+    </div>
     <pre id="speed-output"></pre>
 
     <script>
@@ -107,21 +115,79 @@
         runTraceroute(true);
       }
 
-      async function runSpeedtest() {
+      async function downloadWithProgress(size, threads, progressEl) {
+        let downloaded = 0;
+        progressEl.value = 0;
+        const start = performance.now();
+        const chunkSize = Math.floor(size / threads);
+        const tasks = [];
+        for (let i = 0; i < threads; i++) {
+          tasks.push(fetch('/speedtest/download?size=' + chunkSize).then(async res => {
+            const reader = res.body.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              downloaded += value.length;
+              progressEl.value = downloaded / size * 100;
+            }
+          }));
+        }
+        await Promise.all(tasks);
+        const end = performance.now();
+        return ((size * 8) / (end - start) / 1000).toFixed(2);
+      }
+
+      function uploadWithProgress(size, threads, progressEl) {
+        return new Promise(resolve => {
+          let uploaded = 0;
+          let completed = 0;
+          progressEl.value = 0;
+          const start = performance.now();
+          const chunkSize = Math.floor(size / threads);
+          for (let i = 0; i < threads; i++) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/speedtest/upload');
+            xhr.upload.onprogress = (e) => {
+              uploaded += e.loaded;
+              progressEl.value = uploaded / size * 100;
+            };
+            xhr.onload = () => {
+              completed++;
+              if (completed === threads) {
+                const end = performance.now();
+                const speed = ((size * 8) / (end - start) / 1000).toFixed(2);
+                resolve(speed);
+              }
+            };
+            xhr.send(new Uint8Array(chunkSize));
+          }
+        });
+      }
+
+      async function runSpeedtestOnce(threads, label) {
         const downloadSize = 5 * 1024 * 1024; // 5 MB
-        const t0 = performance.now();
-        await fetch('/speedtest/download?size=' + downloadSize).then(r => r.blob());
-        const t1 = performance.now();
-        const down = ((downloadSize * 8) / (t1 - t0) / 1000).toFixed(2);
-
         const uploadSize = 2 * 1024 * 1024; // 2 MB
-        const uploadData = new Uint8Array(uploadSize);
-        const t2 = performance.now();
-        await fetch('/speedtest/upload', { method: 'POST', body: uploadData });
-        const t3 = performance.now();
-        const up = ((uploadSize * 8) / (t3 - t2) / 1000).toFixed(2);
+        const down = await downloadWithProgress(downloadSize, threads, document.getElementById('download-progress'));
+        const up = await uploadWithProgress(uploadSize, threads, document.getElementById('upload-progress'));
+        await fetch('/tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            test_target: 'speedtest',
+            speedtest_type: label,
+            download_mbps: parseFloat(down),
+            upload_mbps: parseFloat(up)
+          })
+        });
+        return { down, up };
+      }
 
-        document.getElementById('speed-output').textContent = `Download: ${down} Mbps\nUpload: ${up} Mbps`;
+      async function runSpeedtest() {
+        const single = await runSpeedtestOnce(1, 'single');
+        const multi = await runSpeedtestOnce(4, 'multi');
+        document.getElementById('speed-output').textContent =
+          `Single Thread - Download: ${single.down} Mbps Upload: ${single.up} Mbps\n` +
+          `Multi Thread - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
       }
     </script>
   </body>
