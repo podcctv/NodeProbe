@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>NodeProbe Admin</title>
+</head>
+<body>
+    <h1>Test Records Admin</h1>
+    <p><a href="/admin/logout">Logout</a></p>
+    <section>
+        <h2>Add / Edit Record</h2>
+        <form id="recordForm">
+            <input type="hidden" name="id">
+            <label>Client IP: <input name="client_ip"></label><br>
+            <label>Location: <input name="location"></label><br>
+            <label>ASN: <input name="asn"></label><br>
+            <label>ISP: <input name="isp"></label><br>
+            <label>Ping(ms): <input name="ping_ms" type="number" step="0.01"></label><br>
+            <label>Test Target: <input name="test_target"></label><br>
+            <button type="submit">Save</button>
+        </form>
+    </section>
+    <section>
+        <h2>Existing Records</h2>
+        <button id="deleteSelected">Delete Selected</button>
+        <table border="1" id="recordsTable">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>ID</th>
+                    <th>Client IP</th>
+                    <th>Location</th>
+                    <th>ASN</th>
+                    <th>ISP</th>
+                    <th>Ping(ms)</th>
+                    <th>Target</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
+<script>
+async function loadRecords() {
+    const res = await fetch('/tests');
+    const data = await res.json();
+    const tbody = document.querySelector('#recordsTable tbody');
+    tbody.innerHTML = '';
+    data.records.forEach(rec => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="checkbox" value="${rec.id}"></td>
+            <td>${rec.id}</td>
+            <td>${rec.client_ip || ''}</td>
+            <td>${rec.location || ''}</td>
+            <td>${rec.asn || ''}</td>
+            <td>${rec.isp || ''}</td>
+            <td>${rec.ping_ms ?? ''}</td>
+            <td>${rec.test_target || ''}</td>
+            <td><button data-edit="${rec.id}">Edit</button><button data-del="${rec.id}">Delete</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+document.getElementById('recordForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const data = Object.fromEntries(new FormData(form).entries());
+    const id = data.id;
+    delete data.id;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/admin/tests/${id}` : '/admin/tests';
+    await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    form.reset();
+    loadRecords();
+});
+
+document.getElementById('recordsTable').addEventListener('click', async e => {
+    const editId = e.target.getAttribute('data-edit');
+    const delId = e.target.getAttribute('data-del');
+    if (editId) {
+        const res = await fetch('/tests');
+        const data = await res.json();
+        const rec = data.records.find(r => r.id == editId);
+        const form = document.getElementById('recordForm');
+        form.id.value = rec.id;
+        form.client_ip.value = rec.client_ip || '';
+        form.location.value = rec.location || '';
+        form.asn.value = rec.asn || '';
+        form.isp.value = rec.isp || '';
+        form.ping_ms.value = rec.ping_ms ?? '';
+        form.test_target.value = rec.test_target || '';
+    }
+    if (delId) {
+        await fetch('/admin/tests', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: [Number(delId)]})
+        });
+        loadRecords();
+    }
+});
+
+document.getElementById('deleteSelected').addEventListener('click', async () => {
+    const ids = Array.from(document.querySelectorAll('#recordsTable tbody input[type=checkbox]:checked')).map(cb => Number(cb.value));
+    if (ids.length === 0) return;
+    await fetch('/admin/tests', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ids})
+    });
+    loadRecords();
+});
+
+document.getElementById('selectAll').addEventListener('change', e => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#recordsTable tbody input[type=checkbox]').forEach(cb => cb.checked = checked);
+});
+
+loadRecords();
+</script>
+</body>
+</html>

@@ -5,3 +5,5 @@ pydantic
 requests
 jinja2
 httpx
+itsdangerous
+python-multipart

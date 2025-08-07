@@ -1,21 +1,35 @@
 from pathlib import Path
 from datetime import datetime
 import re
+import os
+import secrets
+import hashlib
+import hmac
 
-from fastapi import FastAPI, Depends, Request
+from fastapi import (
+    FastAPI,
+    Depends,
+    Request,
+    Form,
+    HTTPException,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import requests
 import subprocess
 import tempfile
+from starlette.middleware.sessions import SessionMiddleware
 
 from . import models, schemas, database
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "nodeprobe-secret"))
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
@@ -36,6 +50,40 @@ def short_ts(ts):
 templates.env.filters["mask_ip"] = mask_ip
 templates.env.filters["short_ts"] = short_ts
 
+
+@app.on_event("startup")
+def create_default_user():
+    db = database.SessionLocal()
+    try:
+        if not db.query(models.User).first():
+            password = secrets.token_urlsafe(8)
+            user = models.User(
+                username="NodeProbe",
+                password_hash=hash_password(password),
+            )
+            db.add(user)
+            db.commit()
+            print(
+                f"Initial admin credentials - username: NodeProbe password: {password}"
+            )
+    finally:
+        db.close()
+
+
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((salt + password).encode()).hexdigest()
+    return f"{salt}${hashed}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        salt, hashed = stored.split("$", 1)
+    except ValueError:
+        return False
+    check = hashlib.sha256((salt + password).encode()).hexdigest()
+    return hmac.compare_digest(check, hashed)
+
 # Allow the frontend dev server or any origin to access the API
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +100,26 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_current_user(
+    request: Request, db: Session = Depends(get_db)
+) -> models.User:
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    user = db.get(models.User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    return user
+
+
+def require_active_user(user: models.User = Depends(get_current_user)) -> models.User:
+    if user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Password change required"
+        )
+    return user
 
 
 def _ping(host: str) -> float | None:
@@ -73,6 +141,62 @@ def _ping(host: str) -> float | None:
     except Exception:
         pass
     return None
+
+
+@app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
+def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.post("/admin/login", include_in_schema=False)
+def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter_by(username=username).first()
+    if not user or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Invalid credentials"},
+            status_code=400,
+        )
+    request.session["user_id"] = user.id
+    if user.must_change_password:
+        return RedirectResponse("/admin/password", status_code=303)
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.get("/admin/logout", include_in_schema=False)
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/admin/login", status_code=303)
+
+
+@app.get("/admin/password", response_class=HTMLResponse, include_in_schema=False)
+def password_form(
+    request: Request, user: models.User = Depends(get_current_user)
+):
+    return templates.TemplateResponse("change_password.html", {"request": request})
+
+
+@app.post("/admin/password", include_in_schema=False)
+def change_password(
+    request: Request,
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    user.password_hash = hash_password(password)
+    user.must_change_password = False
+    db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
+@app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
+def admin_page(request: Request, user: models.User = Depends(require_active_user)):
+    return templates.TemplateResponse("admin.html", {"request": request, "user": user})
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -175,6 +299,63 @@ def create_test(
     db.commit()
     db.refresh(db_record)
     return db_record
+
+
+@app.get(
+    "/admin/tests", response_model=schemas.TestsResponse, include_in_schema=False
+)
+def admin_read_tests(
+    db: Session = Depends(get_db), user: models.User = Depends(require_active_user)
+):
+    records = db.query(models.TestRecord).all()
+    return {"records": records}
+
+
+@app.post(
+    "/admin/tests", response_model=schemas.TestRecord, include_in_schema=False
+)
+def admin_create_test(
+    record: schemas.TestRecordCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(require_active_user),
+):
+    db_record = models.TestRecord(**record.dict())
+    db.add(db_record)
+    db.commit()
+    db.refresh(db_record)
+    return db_record
+
+
+@app.put(
+    "/admin/tests/{test_id}", response_model=schemas.TestRecord, include_in_schema=False
+)
+def admin_update_test(
+    test_id: int,
+    record: schemas.TestRecordUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(require_active_user),
+):
+    db_record = db.get(models.TestRecord, test_id)
+    if not db_record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    for key, value in record.dict(exclude_unset=True).items():
+        setattr(db_record, key, value)
+    db.commit()
+    db.refresh(db_record)
+    return db_record
+
+
+@app.delete("/admin/tests", include_in_schema=False)
+def admin_delete_tests(
+    payload: schemas.IDList,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(require_active_user),
+):
+    q = db.query(models.TestRecord).filter(models.TestRecord.id.in_(payload.ids))
+    deleted = q.count()
+    q.delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": deleted}
 
 
 @app.get("/ping")
