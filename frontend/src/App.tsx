@@ -388,7 +388,7 @@ function App() {
                 </thead>
                 <tbody>
                   {records
-                    .slice(0, 5)
+                    .slice(0, 10)
                     .map((r) => (
                       <tr key={r.id}>
                         <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
