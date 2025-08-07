@@ -7,3 +7,5 @@ jinja2
 httpx
 itsdangerous
 python-multipart
+speedtest-cli
+

@@ -360,7 +360,12 @@ def admin_delete_tests(
 
 @app.get("/ping")
 def run_ping(host: str, count: int = 4):
-    """Run a ping test against a host and return the raw output."""
+    """Run a ping test against a host and return the raw output.
+
+    The response also includes the parsed round trip time in milliseconds when
+    available.  This value can be used by the frontend to record a test result
+    via the ``/tests`` API.
+    """
     try:
         result = subprocess.run(
             ["ping", "-c", str(count), host],
@@ -369,7 +374,11 @@ def run_ping(host: str, count: int = 4):
             timeout=10,
         )
         if result.returncode == 0:
-            return {"output": result.stdout}
+            data = {"output": result.stdout}
+            match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
+            if match:
+                data["ping_ms"] = float(match.group(1))
+            return data
         return {"error": result.stderr or "Ping failed"}
     except FileNotFoundError:
         return {"error": "ping command not found"}
@@ -401,5 +410,24 @@ def run_traceroute(host: str, download: bool = False):
         return {"output": result.stdout}
     except FileNotFoundError:
         return {"error": "traceroute command not found"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+@app.get("/speedtest")
+def run_speedtest():
+    """Run a basic network speed test.
+
+    The test returns the download and upload speeds in bits per second.  Any
+    errors from the underlying ``speedtest`` module are captured and returned to
+    the caller so the frontend can display a helpful message.
+    """
+    try:
+        import speedtest  # type: ignore
+
+        st = speedtest.Speedtest()
+        download = st.download()
+        upload = st.upload()
+        return {"download": download, "upload": upload}
     except Exception as exc:
         return {"error": str(exc)}
