@@ -54,6 +54,15 @@ def test_get_client_ip_handles_missing_client():
     assert _get_client_ip(req) == ""
 
 
+def test_mask_ip_handles_none_and_ipv6():
+    from backend.main import mask_ip
+
+    assert mask_ip(None) is None
+    assert mask_ip("127.0.0.1") == "127.***.***.1"
+    # Basic masking for IPv6 addresses; exact pattern is less important
+    assert mask_ip("2001:db8::1").startswith("2001:")
+
+
 def test_ping_endpoint_localhost():
     res = client.get("/ping", params={"host": "127.0.0.1", "count": 1})
     data = res.json()
