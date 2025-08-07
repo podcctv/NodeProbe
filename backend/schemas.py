@@ -57,5 +57,10 @@ class TestsResponse(BaseModel):
     records: list[TestRecord] = []
 
 
+class AdminTestsResponse(BaseModel):
+    total: int
+    records: list[TestRecord] = []
+
+
 class IDList(BaseModel):
     ids: list[int]
