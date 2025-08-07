@@ -27,11 +27,19 @@
         border-collapse: collapse;
         padding: 0.3rem;
       }
+      .banner {
+        text-align: center;
+      }
+      .banner pre {
+        display: inline-block;
+        text-align: left;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
-    <pre style="text-align: center;">
-
+    <div class="banner">
+      <pre>
                   _
 __   ___ __  ___ | |_ _____      ___ __
 \ \ / / '_ \/ __|| __/ _ \ \ /\ / / '_ \
@@ -45,7 +53,10 @@ __   ___ __  ___ | |_ _____      ___ __
 |_| |_|\___/ \__,_|\___| .__/|_|  \___/|_.__/ \___|
                         |_|
 
-    </pre>
+
+      </pre>
+    </div>
+
     <h1>Your Connection Info</h1>
     <ul>
       <li>IP: {{ info.client_ip|mask_ip }}</li>
@@ -97,6 +108,12 @@ __   ___ __  ___ | |_ _____      ___ __
     <pre id="speed-output"></pre>
 
     <script>
+      const clientInfo = {
+        client_ip: {{ info.client_ip | tojson }},
+        location: {{ info.location | tojson }},
+        asn: {{ info.asn | tojson }},
+        isp: {{ info.isp | tojson }}
+      };
       async function loadRecentTests() {
         const res = await fetch('/tests');
         const data = await res.json();
@@ -146,6 +163,7 @@ __   ___ __  ___ | |_ _____      ___ __
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              ...clientInfo,
               test_target: host,
               ping_ms: data.ping_ms,
               ping_min_ms: data.ping_min_ms,
@@ -229,6 +247,7 @@ __   ___ __  ___ | |_ _____      ___ __
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            ...clientInfo,
             test_target: 'speedtest',
             speedtest_type: label,
             download_mbps: parseFloat(down),
