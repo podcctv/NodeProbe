@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import re
 import os
@@ -363,7 +363,12 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
     """
 
     client_ip = _get_client_ip(request)
-    data = {"client_ip": client_ip, "test_target": "default"}
+    user_agent = request.headers.get("user-agent")
+    data = {
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "test_target": "default",
+    }
 
     ping_ms = _ping(client_ip)
     if ping_ms is not None:
@@ -413,8 +418,27 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
                 pass
 
     data["asn"] = normalize_asn(data.get("asn"))
-    db_record = models.TestRecord(**data)
-    db.add(db_record)
+
+    ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+    existing = (
+        db.query(models.TestRecord)
+        .filter(
+            models.TestRecord.client_ip == client_ip,
+            models.TestRecord.user_agent == user_agent,
+            models.TestRecord.timestamp >= ten_minutes_ago,
+        )
+        .first()
+    )
+
+    if existing:
+        for key, value in data.items():
+            setattr(existing, key, value)
+        existing.timestamp = datetime.utcnow()
+        db_record = existing
+    else:
+        db_record = models.TestRecord(**data)
+        db.add(db_record)
+
     db.commit()
     db.refresh(db_record)
 
@@ -433,10 +457,10 @@ def api_root():
 
 @app.get("/tests", response_model=schemas.TestsResponse)
 def read_tests(request: Request, db: Session = Depends(get_db)):
-    """Return recent test records for up to ten unique client IPs.
+    """Return recent test records for up to ten client sessions.
 
-    Since each IP has at most one aggregated record, we simply return the ten
-    most recently updated rows.
+    Records are aggregated per client IP and user agent within the last ten
+    minutes, so we simply return the ten most recently updated rows.
     """
 
     rows = (
@@ -464,7 +488,9 @@ def create_test(
 ):
     data = record.dict()
     client_ip = _get_client_ip(request)
+    user_agent = request.headers.get("user-agent")
     data["client_ip"] = data.get("client_ip") or client_ip
+    data["user_agent"] = data.get("user_agent") or user_agent
 
     if not data.get("location") or not data.get("asn") or not data.get("isp"):
         try:
@@ -536,9 +562,14 @@ def create_test(
     dl = data.pop("download_mbps", None)
     ul = data.pop("upload_mbps", None)
 
+    ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
     existing = (
         db.query(models.TestRecord)
-        .filter(models.TestRecord.client_ip == client_ip)
+        .filter(
+            models.TestRecord.client_ip == client_ip,
+            models.TestRecord.user_agent == user_agent,
+            models.TestRecord.timestamp >= ten_minutes_ago,
+        )
         .first()
     )
 
@@ -588,6 +619,7 @@ def create_test(
 
     mapped = {
         "client_ip": client_ip,
+        "user_agent": user_agent,
         "location": data.get("location"),
         "asn": data.get("asn"),
         "isp": data.get("isp"),

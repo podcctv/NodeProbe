@@ -178,7 +178,11 @@ def test_create_test_merges_recent_records():
         db.query(TestRecord).delete()
         db.add(
             TestRecord(
-                client_ip="testclient", ping_ms=10, ping_min_ms=8, ping_max_ms=12
+                client_ip="testclient",
+                user_agent="testclient",
+                ping_ms=10,
+                ping_min_ms=8,
+                ping_max_ms=12,
             )
         )
         db.commit()
