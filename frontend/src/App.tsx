@@ -104,19 +104,41 @@ function App() {
         <div className="space-y-2">
           <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
           {records.length > 0 ? (
-            <ul className="text-sm space-y-1">
-              {records
-                .slice(-5)
-                .reverse()
-                .map((r) => (
-                  <li key={r.id}>
-                    {maskIp(r.client_ip)}
-                    {r.location && r.location !== 'Unknown' && ` - ${r.location}`} -{' '}
-                    {typeof r.ping_ms === 'number' && `${r.ping_ms.toFixed(2)} ms - `}
-                    {new Date(r.timestamp).toLocaleString()}
-                  </li>
-                ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-1 text-left">IP</th>
+                    <th className="px-2 py-1 text-left">Location</th>
+                    <th className="px-2 py-1 text-left">ASN</th>
+                    <th className="px-2 py-1 text-left">ISP</th>
+                    <th className="px-2 py-1 text-left">Ping</th>
+                    <th className="px-2 py-1 text-left">Recorded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records
+                    .slice(-5)
+                    .reverse()
+                    .map((r) => (
+                      <tr key={r.id}>
+                        <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
+                        <td className="px-2 py-1">
+                          {r.location && r.location !== 'Unknown' ? r.location : ''}
+                        </td>
+                        <td className="px-2 py-1">{r.asn || ''}</td>
+                        <td className="px-2 py-1">{r.isp || ''}</td>
+                        <td className="px-2 py-1">
+                          {typeof r.ping_ms === 'number' ? `${r.ping_ms.toFixed(2)} ms` : ''}
+                        </td>
+                        <td className="px-2 py-1">
+                          {new Date(r.timestamp).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="text-sm text-center text-gray-400">
               {recordsMessage || 'No test records found. Run a test to get started.'}
