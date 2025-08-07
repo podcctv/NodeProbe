@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import SpeedChart from './SpeedChart';
 
 interface RawTestRecord {
@@ -145,8 +145,8 @@ function App() {
   });
   const [speedResult, setSpeedResult] = useState<
     | {
-        single: { down: number; up: number };
-        multi: { down: number; up: number };
+        single?: { down: number; up: number };
+        multi?: { down: number; up: number };
       }
     | null
   >(null);
@@ -156,6 +156,9 @@ function App() {
   const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
+
+  const downloadControllers = useRef<AbortController[]>([]);
+  const uploadXhrs = useRef<XMLHttpRequest[]>([]);
 
     useEffect(() => {
       runInitialTests();
@@ -187,7 +190,8 @@ function App() {
         await runPing(data.client_ip);
         await runTraceroute(data.client_ip, true);
         setLoadingMsg('正在进行 Speedtest 测试...');
-        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024);
+        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1);
+        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8);
       }
     } catch (err) {
       console.error('Failed to run initial tests', err);
@@ -243,7 +247,11 @@ function App() {
     setDownloadSpeeds([]);
     setCurrentDownloadSpeed(0);
     if (threads === 1) {
-      const res = await fetch(`/speedtest/download?size=${size}`);
+      const controller = new AbortController();
+      downloadControllers.current.push(controller);
+      const res = await fetch(`/speedtest/download?size=${size}`, {
+        signal: controller.signal,
+      });
       const reader = res.body?.getReader();
       if (!reader) return 0;
       let received = 0;
@@ -271,10 +279,14 @@ function App() {
     let received = 0;
     const start = performance.now();
     let lastTime = start;
-    const tasks = [];
+    const tasks = [] as Promise<void>[];
     for (let i = 0; i < threads; i++) {
+      const controller = new AbortController();
+      downloadControllers.current.push(controller);
       tasks.push(
-        fetch(`/speedtest/download?size=${chunkSize}`).then(async (res) => {
+        fetch(`/speedtest/download?size=${chunkSize}`, {
+          signal: controller.signal,
+        }).then(async (res) => {
           const reader = res.body?.getReader();
           if (!reader) return;
           while (true) {
@@ -304,8 +316,9 @@ function App() {
     setUploadSpeeds([]);
     setCurrentUploadSpeed(0);
     if (threads === 1) {
-      return new Promise<number>((resolve) => {
+      return new Promise<number>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        uploadXhrs.current.push(xhr);
         const start = performance.now();
         let lastLoaded = 0;
         let lastTime = start;
@@ -327,11 +340,13 @@ function App() {
           const end = performance.now();
           resolve((size * 8) / (end - start) / 1000);
         };
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
         xhr.send(new Uint8Array(size));
       });
     }
 
-    return new Promise<number>((resolve) => {
+    return new Promise<number>((resolve, reject) => {
       const chunkSize = Math.floor(size / threads);
       let uploaded = 0;
       const start = performance.now();
@@ -340,6 +355,7 @@ function App() {
       let completed = 0;
       for (let i = 0; i < threads; i++) {
         const xhr = new XMLHttpRequest();
+        uploadXhrs.current.push(xhr);
         xhr.open('POST', '/speedtest/upload');
         let prev = 0;
         xhr.upload.onprogress = (e) => {
@@ -364,48 +380,40 @@ function App() {
             resolve((size * 8) / (end - start) / 1000);
           }
         };
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
         xhr.send(new Uint8Array(chunkSize));
       }
     });
   }
 
-  const runSpeedtest = async (downloadSize: number, uploadSize: number) => {
+  const runSpeedtest = async (
+    downloadSize: number,
+    uploadSize: number,
+    threads: number
+  ) => {
     setSpeedRunning(true);
     setSpeedResult(null);
+    downloadControllers.current = [];
+    uploadXhrs.current = [];
 
     const speedtestPromise = (async () => {
-      // Single thread
-      const singleDown = await downloadWithProgress(downloadSize, 1);
-      const singleUp = await uploadWithProgress(uploadSize, 1);
+      const down = await downloadWithProgress(downloadSize, threads);
+      const up = await uploadWithProgress(uploadSize, threads);
       await fetch('/tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           test_target: 'speedtest',
-          speedtest_type: 'single',
-          download_mbps: singleDown,
-          upload_mbps: singleUp,
+          speedtest_type: threads === 1 ? 'single' : 'multi',
+          download_mbps: down,
+          upload_mbps: up,
         }),
       });
-
-      // Multi thread (8)
-      const multiDown = await downloadWithProgress(downloadSize, 8);
-      const multiUp = await uploadWithProgress(uploadSize, 8);
-      await fetch('/tests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          test_target: 'speedtest',
-          speedtest_type: 'multi',
-          download_mbps: multiDown,
-          upload_mbps: multiUp,
-        }),
-      });
-
-      setSpeedResult({
-        single: { down: singleDown, up: singleUp },
-        multi: { down: multiDown, up: multiUp },
-      });
+      setSpeedResult((prev) => ({
+        ...(prev || {}),
+        [threads === 1 ? 'single' : 'multi']: { down, up },
+      }));
       const recs = await loadRecords();
       if (recs.length > 0) {
         setInfo(recs[0]);
@@ -413,7 +421,9 @@ function App() {
     })();
 
     speedtestPromise.catch((err) => {
-      console.error('Speedtest failed', err);
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        console.error('Speedtest failed', err);
+      }
     });
 
     try {
@@ -424,12 +434,28 @@ function App() {
         ),
       ]);
     } catch (err) {
-      console.error('Speedtest timed out', err);
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        console.error('Speedtest timed out', err);
+      }
     } finally {
       setSpeedRunning(false);
       setCurrentDownloadSpeed(0);
       setCurrentUploadSpeed(0);
     }
+  };
+
+  const stopSpeedtest = () => {
+    downloadControllers.current.forEach((c) => c.abort());
+    uploadXhrs.current.forEach((x) => x.abort());
+    downloadControllers.current = [];
+    uploadXhrs.current = [];
+    setSpeedRunning(false);
+    setCurrentDownloadSpeed(0);
+    setCurrentUploadSpeed(0);
+    setDownloadProgress({ transferred: 0, size: 0 });
+    setUploadProgress({ transferred: 0, size: 0 });
+    setDownloadSpeeds([]);
+    setUploadSpeeds([]);
   };
   if (loading) {
     return (
@@ -554,28 +580,74 @@ function App() {
 
         <div className="space-y-2 text-center">
           <h2 className="text-xl mb-2">Speed Test</h2>
-          <div className="flex justify-center space-x-2">
-            <button
-              className="px-4 py-1 rounded bg-green-600 text-black"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024)}
-            >
-              100M
-            </button>
-            <button
-              className="px-4 py-1 rounded bg-green-600 text-black"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024)}
-            >
-              500M
-            </button>
-            <button
-              className="px-4 py-1 rounded bg-green-600 text-black"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024)}
-            >
-              1G
-            </button>
+          <div className="space-y-2">
+            <div className="flex justify-center space-x-2">
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)
+                }
+              >
+                [单线程]100M
+              </button>
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)
+                }
+              >
+                [单线程]500M
+              </button>
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
+                }
+              >
+                [单线程]1G
+              </button>
+            </div>
+            <div className="flex justify-center space-x-2">
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)
+                }
+              >
+                [八线程]100M
+              </button>
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)
+                }
+              >
+                [八线程]500M
+              </button>
+              <button
+                className="px-4 py-1 rounded bg-green-600 text-black"
+                disabled={speedRunning}
+                onClick={() =>
+                  runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
+                }
+              >
+                [八线程]1G
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="px-4 py-1 rounded bg-red-600 text-black"
+                disabled={!speedRunning}
+                onClick={stopSpeedtest}
+              >
+                STOP
+              </button>
+            </div>
           </div>
           <div>Download Progress: {formatProgress(downloadProgress)}</div>
           <div>Upload Progress: {formatProgress(uploadProgress)}</div>
@@ -613,7 +685,12 @@ function App() {
           )}
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
-              {`Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} Mbps ⬆️ ${speedResult.single.up.toFixed(2)} Mbps\nMulti Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} Mbps ⬆️ ${speedResult.multi.up.toFixed(2)} Mbps`}
+              {speedResult.single
+                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} Mbps ⬆️ ${speedResult.single.up.toFixed(2)} Mbps\n`
+                : ''}
+              {speedResult.multi
+                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} Mbps ⬆️ ${speedResult.multi.up.toFixed(2)} Mbps`
+                : ''}
             </pre>
           )}
         </div>
