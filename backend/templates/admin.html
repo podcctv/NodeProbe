@@ -19,7 +19,12 @@
             <label>Location: <input name="location"></label><br>
             <label>ASN: <input name="asn"></label><br>
             <label>ISP: <input name="isp"></label><br>
-            <label>Ping(ms): <input name="ping_ms" type="number" step="0.01"></label><br>
+            <label>Ping Avg(ms): <input name="ping_ms" type="number" step="0.01"></label><br>
+            <label>Ping Min(ms): <input name="ping_min_ms" type="number" step="0.01"></label><br>
+            <label>Ping Max(ms): <input name="ping_max_ms" type="number" step="0.01"></label><br>
+            <label>Download(Mbps): <input name="download_mbps" type="number" step="0.01"></label><br>
+            <label>Upload(Mbps): <input name="upload_mbps" type="number" step="0.01"></label><br>
+            <label>Speedtest Type: <input name="speedtest_type"></label><br>
             <label>Test Target: <input name="test_target"></label><br>
             <button type="submit">Save</button>
         </form>
@@ -36,7 +41,12 @@
                     <th>Location</th>
                     <th>ASN</th>
                     <th>ISP</th>
-                    <th>Ping(ms)</th>
+                    <th>Ping Avg(ms)</th>
+                    <th>Ping Min(ms)</th>
+                    <th>Ping Max(ms)</th>
+                    <th>Download(Mbps)</th>
+                    <th>Upload(Mbps)</th>
+                    <th>Speedtest Type</th>
                     <th>Target</th>
                     <th>Actions</th>
                 </tr>
@@ -60,6 +70,11 @@ async function loadRecords() {
             <td>${rec.asn || ''}</td>
             <td>${rec.isp || ''}</td>
             <td>${rec.ping_ms ?? ''}</td>
+            <td>${rec.ping_min_ms ?? ''}</td>
+            <td>${rec.ping_max_ms ?? ''}</td>
+            <td>${rec.download_mbps ?? ''}</td>
+            <td>${rec.upload_mbps ?? ''}</td>
+            <td>${rec.speedtest_type || ''}</td>
             <td>${rec.test_target || ''}</td>
             <td><button data-edit="${rec.id}">Edit</button><button data-del="${rec.id}">Delete</button></td>
         `;
@@ -98,6 +113,11 @@ document.getElementById('recordsTable').addEventListener('click', async e => {
         form.asn.value = rec.asn || '';
         form.isp.value = rec.isp || '';
         form.ping_ms.value = rec.ping_ms ?? '';
+        form.ping_min_ms.value = rec.ping_min_ms ?? '';
+        form.ping_max_ms.value = rec.ping_max_ms ?? '';
+        form.download_mbps.value = rec.download_mbps ?? '';
+        form.upload_mbps.value = rec.upload_mbps ?? '';
+        form.speedtest_type.value = rec.speedtest_type || '';
         form.test_target.value = rec.test_target || '';
     }
     if (delId) {
