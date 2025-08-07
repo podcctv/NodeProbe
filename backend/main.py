@@ -7,6 +7,15 @@ models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
 
 
+@app.get("/")
+def read_root():
+    """Simple health check endpoint.
+
+    Returns a friendly message indicating the API is running.
+    """
+    return {"message": "NodeProbe API is running"}
+
+
 def get_db():
     db = database.SessionLocal()
     try:
