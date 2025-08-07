@@ -224,7 +224,6 @@ function App() {
       setPingOutput('Ping failed');
     }
   };
-
   const runTraceroute = async (host: string, record = false) => {
     setTraceOutput('Running...');
     try {
