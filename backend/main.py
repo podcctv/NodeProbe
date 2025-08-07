@@ -325,11 +325,11 @@ def api_root():
 def read_tests(request: Request, db: Session = Depends(get_db)):
     """Return aggregated test records for the last ten minutes.
 
-    Multiple tests from the same ``client_ip`` within the last ten minutes are
-    collapsed into a single entry with average ``ping_ms``,
-    ``download_mbps`` and ``upload_mbps`` values computed directly in the
-    database.  The most recent ``timestamp`` for each IP is retained so that
-    results remain chronologically ordered.
+    Multiple tests from the same ``client_ip`` and ``speedtest_type`` within
+    the last ten minutes are collapsed into a single entry with average
+    ``ping_ms``, ``download_mbps`` and ``upload_mbps`` values computed directly
+    in the database.  The most recent ``timestamp`` for each group is retained
+    so that results remain chronologically ordered.
     """
 
     ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
@@ -348,9 +348,10 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
             func.avg(models.TestRecord.upload_mbps).label("upload_mbps"),
             func.max(models.TestRecord.timestamp).label("timestamp"),
             func.max(models.TestRecord.test_target).label("test_target"),
+            func.max(models.TestRecord.speedtest_type).label("speedtest_type"),
         )
         .filter(models.TestRecord.timestamp >= ten_min_ago)
-        .group_by(models.TestRecord.client_ip)
+        .group_by(models.TestRecord.client_ip, models.TestRecord.speedtest_type)
         .order_by(func.max(models.TestRecord.timestamp).desc())
     )
 
