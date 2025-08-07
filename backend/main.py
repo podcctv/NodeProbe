@@ -452,7 +452,10 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/tests", response_model=schemas.TestRecord)
 def create_test(
-    record: schemas.TestRecordCreate, request: Request, db: Session = Depends(get_db)
+    record: schemas.TestRecordCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    skip_ping: bool = False,
 ):
     data = record.dict()
     client_ip = _get_client_ip(request)
@@ -508,14 +511,18 @@ def create_test(
                 except Exception:
                     pass
 
-    if not data.get("ping_ms"):
-        host = data.get("test_target") or client_ip
-        ping_ms = _ping(host)
-        if ping_ms is not None:
-            data["ping_ms"] = ping_ms
-            data.setdefault("ping_min_ms", ping_ms)
-            data.setdefault("ping_max_ms", ping_ms)
-    else:
+    if not skip_ping:
+        if not data.get("ping_ms"):
+            host = data.get("test_target") or client_ip
+            ping_ms = _ping(host)
+            if ping_ms is not None:
+                data["ping_ms"] = ping_ms
+                data.setdefault("ping_min_ms", ping_ms)
+                data.setdefault("ping_max_ms", ping_ms)
+        else:
+            data.setdefault("ping_min_ms", data["ping_ms"])
+            data.setdefault("ping_max_ms", data["ping_ms"])
+    elif data.get("ping_ms") is not None:
         data.setdefault("ping_min_ms", data["ping_ms"])
         data.setdefault("ping_max_ms", data["ping_ms"])
 

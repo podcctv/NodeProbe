@@ -166,7 +166,7 @@ function App() {
     setLoading(true);
     setLoadingMsg('正在进行 ping Traceroute 测试...');
     try {
-      const res = await fetch('/tests', {
+      const res = await fetch('/tests?skip_ping=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -205,6 +205,31 @@ function App() {
       const res = await fetch(`/ping?host=${encodeURIComponent(host)}&count=10`);
       const data = await res.json();
       setPingOutput(data.output || data.error || 'No output');
+      if (typeof data.ping_ms === 'number') {
+        try {
+          await fetch('/tests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ping_ms: data.ping_ms,
+              ping_min_ms: data.ping_min_ms,
+              ping_max_ms: data.ping_max_ms,
+            }),
+          });
+        } catch (e) {
+          console.error('Failed to record ping result', e);
+        }
+        setInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                ping_ms: data.ping_ms,
+                ping_min_ms: data.ping_min_ms,
+                ping_max_ms: data.ping_max_ms,
+              }
+            : prev
+        );
+      }
     } catch (err) {
       console.error('Ping failed', err);
       setPingOutput('Ping failed');
