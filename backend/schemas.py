@@ -23,3 +23,16 @@ class TestRecord(TestRecordBase):
 
     class Config:
         from_attributes = True
+
+
+class TestsResponse(BaseModel):
+    """Response model for ``GET /tests``.
+
+    When there are no records in the database we return an empty ``records``
+    list together with a human friendly ``message`` that guides the user to
+    create their first test record.  This prevents the endpoint from appearing
+    "empty" when accessed in a browser.
+    """
+
+    message: str | None = None
+    records: list[TestRecord] = []
