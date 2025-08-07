@@ -58,12 +58,12 @@
     </table>
 
     <h2>Manual Ping Test</h2>
-    <input id="host" value="8.8.8.8" />
+    <input id="host" value="{{ info.client_ip or '' }}" />
     <button onclick="runPing()">Ping</button>
     <pre id="ping-output"></pre>
 
     <h2>Traceroute</h2>
-    <input id="trace-host" value="8.8.8.8" />
+    <input id="trace-host" value="{{ info.client_ip or '' }}" />
     <button onclick="runTraceroute()">Traceroute</button>
     <button onclick="downloadTraceroute()">Download</button>
     <pre id="trace-output"></pre>
@@ -103,15 +103,20 @@
       }
 
       async function runSpeedtest() {
-        const res = await fetch('/speedtest');
-        const data = await res.json();
-        if (data.download) {
-          const down = (data.download / 1e6).toFixed(2);
-          const up = (data.upload / 1e6).toFixed(2);
-          document.getElementById('speed-output').textContent = `Download: ${down} Mbps\nUpload: ${up} Mbps`;
-        } else {
-          document.getElementById('speed-output').textContent = data.error || 'No output';
-        }
+        const downloadSize = 5 * 1024 * 1024; // 5 MB
+        const t0 = performance.now();
+        await fetch('/speedtest/download?size=' + downloadSize).then(r => r.blob());
+        const t1 = performance.now();
+        const down = ((downloadSize * 8) / (t1 - t0) / 1000).toFixed(2);
+
+        const uploadSize = 2 * 1024 * 1024; // 2 MB
+        const uploadData = new Uint8Array(uploadSize);
+        const t2 = performance.now();
+        await fetch('/speedtest/upload', { method: 'POST', body: uploadData });
+        const t3 = performance.now();
+        const up = ((uploadSize * 8) / (t3 - t2) / 1000).toFixed(2);
+
+        document.getElementById('speed-output').textContent = `Download: ${down} Mbps\nUpload: ${up} Mbps`;
       }
     </script>
   </body>

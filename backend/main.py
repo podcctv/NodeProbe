@@ -16,7 +16,12 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse,
+    FileResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import requests
@@ -428,20 +433,25 @@ def run_traceroute(host: str, download: bool = False):
         return {"error": str(exc)}
 
 
-@app.get("/speedtest")
-def run_speedtest():
-    """Run a basic network speed test.
+@app.get("/speedtest/download")
+def speedtest_download(size: int = 1_000_000):
+    """Send ``size`` bytes to the client for download speed testing."""
 
-    The test returns the download and upload speeds in bits per second.  Any
-    errors from the underlying ``speedtest`` module are captured and returned to
-    the caller so the frontend can display a helpful message.
-    """
-    try:
-        import speedtest  # type: ignore
+    def generate():
+        chunk = b"0" * 65536
+        remaining = size
+        while remaining > 0:
+            to_send = chunk if remaining >= len(chunk) else b"0" * remaining
+            yield to_send
+            remaining -= len(to_send)
 
-        st = speedtest.Speedtest()
-        download = st.download()
-        upload = st.upload()
-        return {"download": download, "upload": upload}
-    except Exception as exc:
-        return {"error": str(exc)}
+    headers = {"Content-Length": str(size)}
+    return StreamingResponse(generate(), media_type="application/octet-stream", headers=headers)
+
+
+@app.post("/speedtest/upload")
+async def speedtest_upload(request: Request):
+    """Receive data from the client and report the size for upload testing."""
+
+    data = await request.body()
+    return {"received": len(data)}
