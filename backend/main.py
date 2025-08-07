@@ -271,13 +271,19 @@ def admin_page(request: Request, user: models.User = Depends(require_active_user
     return templates.TemplateResponse("admin.html", {"request": request, "user": user})
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-def read_root(request: Request, db: Session = Depends(get_db)):
-    """Default homepage.
+@app.get("/", include_in_schema=False)
+def root():
+    """Redirect visitors to the dashboard page."""
+    return RedirectResponse("/probe")
 
-    Records basic information about the visiting client and displays recent
-    test results.  The page also provides a simple interface for running manual
-    ping tests against a host.
+
+@app.get("/probe", response_class=HTMLResponse, include_in_schema=False)
+def probe_page(request: Request, db: Session = Depends(get_db)):
+    """Dashboard homepage.
+
+    Records basic information about the visiting client and renders the main
+    dashboard template.  Recent test data is loaded asynchronously via the
+    ``/tests`` API which aggregates records from the last ten minutes.
     """
 
     client_ip = request.client.host
@@ -302,14 +308,8 @@ def read_root(request: Request, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_record)
 
-    records = (
-        db.query(models.TestRecord)
-        .order_by(models.TestRecord.id.desc())
-        .limit(5)
-        .all()
-    )
     return templates.TemplateResponse(
-        "index.html", {"request": request, "info": db_record, "records": records}
+        "index.html", {"request": request, "info": db_record}
     )
 @app.get("/api")
 def api_root():
