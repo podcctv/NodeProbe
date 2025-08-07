@@ -92,6 +92,25 @@ templates.env.filters["mask_ip"] = mask_ip
 templates.env.filters["short_ts"] = short_ts
 
 
+def normalize_asn(asn: str | None) -> str | None:
+    """Return a normalized ASN string starting with ``AS``.
+
+    Various geo-IP providers return the autonomous system number in different
+    formats (e.g. ``"AS906"``, ``"906"`` or ``"AS906 Network"``).  For the
+    purpose of de-duplicating records we treat ``AS906`` and ``906`` as the same
+    ASN.  This helper extracts the numeric portion and ensures the value is
+    consistently prefixed with ``AS``.
+    """
+
+    if not asn:
+        return asn
+
+    match = re.search(r"(\d+)", str(asn))
+    if match:
+        return f"AS{match.group(1)}"
+    return str(asn).upper()
+
+
 @app.on_event("startup")
 def create_default_user():
     db = database.SessionLocal()
@@ -388,6 +407,7 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
             except Exception:
                 pass
 
+    data["asn"] = normalize_asn(data.get("asn"))
     db_record = models.TestRecord(**data)
     db.add(db_record)
     db.commit()
@@ -456,6 +476,9 @@ def read_tests(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    for r in rows:
+        r.asn = normalize_asn(r.asn)
+
     if not rows:
         return {"message": "No recent test records found", "records": []}
 
@@ -523,6 +546,7 @@ def create_test(
                 except Exception:
                     pass
 
+    data["asn"] = normalize_asn(data.get("asn"))
     if not skip_ping:
         if not data.get("ping_ms"):
             host = data.get("test_target") or client_ip
@@ -585,7 +609,7 @@ def create_test(
         averaged = {
             "client_ip": client_ip,
             "location": data.get("location") or existing_records[0].location,
-            "asn": data.get("asn") or existing_records[0].asn,
+            "asn": normalize_asn(data.get("asn") or existing_records[0].asn),
             "isp": data.get("isp") or existing_records[0].isp,
             "ping_min_ms": sum(values_ping_min) / len(values_ping_min)
             if values_ping_min
@@ -621,6 +645,8 @@ def admin_read_tests(
     db: Session = Depends(get_db), user: models.User = Depends(require_active_user)
 ):
     records = db.query(models.TestRecord).all()
+    for r in records:
+        r.asn = normalize_asn(r.asn)
     return {"records": records}
 
 
@@ -632,7 +658,9 @@ def admin_create_test(
     db: Session = Depends(get_db),
     user: models.User = Depends(require_active_user),
 ):
-    db_record = models.TestRecord(**record.dict())
+    data = record.dict()
+    data["asn"] = normalize_asn(data.get("asn"))
+    db_record = models.TestRecord(**data)
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
@@ -652,6 +680,8 @@ def admin_update_test(
     if not db_record:
         raise HTTPException(status_code=404, detail="Record not found")
     for key, value in record.dict(exclude_unset=True).items():
+        if key == "asn":
+            value = normalize_asn(value)
         setattr(db_record, key, value)
     db.commit()
     db.refresh(db_record)

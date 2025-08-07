@@ -261,3 +261,47 @@ def test_multi_speedtest_preserves_single_record():
     assert speeds["single"]["download_mbps"] == 10
     assert abs(speeds["multi"]["download_mbps"] - 50) < 0.01
 
+
+def test_asn_normalization_and_merge():
+    from backend.database import SessionLocal
+    from backend.models import TestRecord
+
+    db = SessionLocal()
+    try:
+        db.query(TestRecord).delete()
+        db.commit()
+    finally:
+        db.close()
+
+    headers = {"X-Forwarded-For": "8.8.8.8"}
+    payload1 = {
+        "asn": "906",
+        "isp": "ISP1",
+        "location": "Loc1",
+        "ping_ms": 10,
+        "ping_min_ms": 10,
+        "ping_max_ms": 10,
+    }
+    client.post("/tests?skip_ping=true", json=payload1, headers=headers)
+
+    payload2 = {
+        "asn": "AS906",
+        "isp": "ISP2",
+        "location": "Loc2",
+        "ping_ms": 20,
+        "ping_min_ms": 20,
+        "ping_max_ms": 20,
+    }
+    client.post("/tests?skip_ping=true", json=payload2, headers=headers)
+
+    res = client.get("/tests")
+    assert res.status_code == 200
+    data = res.json()
+    records = [r for r in data["records"] if r["client_ip"] == "8.8.8.8"]
+    assert len(records) == 1
+    rec = records[0]
+    assert rec["asn"] == "AS906"
+    assert abs(rec["ping_ms"] - 15) < 0.01
+    assert abs(rec["ping_min_ms"] - 15) < 0.01
+    assert abs(rec["ping_max_ms"] - 15) < 0.01
+
