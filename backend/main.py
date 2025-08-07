@@ -5,6 +5,7 @@ import os
 import secrets
 import hashlib
 import hmac
+import logging
 
 from fastapi import (
     FastAPI,
@@ -30,6 +31,8 @@ models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
 
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "nodeprobe-secret"))
+
+logger = logging.getLogger("uvicorn.error")
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
@@ -74,7 +77,7 @@ def create_default_user():
             )
             db.add(user)
             db.commit()
-            print(
+            logger.info(
                 f"Initial admin credentials - username: NodeProbe password: {password}"
             )
     finally:
