@@ -35,6 +35,26 @@
         text-align: left;
         margin: 0;
       }
+      progress {
+        width: 320px;
+        height: 20px;
+        display: block;
+        background-color: #333;
+        border: 1px solid #0f0;
+        border-radius: 4px;
+        overflow: hidden;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      progress::-webkit-progress-bar {
+        background-color: #333;
+      }
+      progress::-webkit-progress-value {
+        background-color: #0f0;
+      }
+      progress::-moz-progress-bar {
+        background-color: #0f0;
+      }
     </style>
   </head>
   <body>
