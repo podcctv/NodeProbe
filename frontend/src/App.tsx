@@ -433,8 +433,9 @@ function App() {
   };
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
+          <pre className="text-center whitespace-pre font-mono">VPS.TOWN   Node Probe</pre>
           <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
           <div className="text-lg animate-pulse">Loading...</div>
           {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
@@ -444,8 +445,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-green-400 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4">
+      <div className="w-full max-w-3xl mx-auto space-y-8">
+        <pre className="text-center whitespace-pre font-mono">VPS.TOWN   Node Probe</pre>
         {info ? (
           <div className="space-y-2 text-center">
             <h1 className="text-xl mb-4">Your Connection Info</h1>
@@ -468,29 +470,27 @@ function App() {
           <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
           {records.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-sm text-left bg-black bg-opacity-50 border border-green-600">
                 <thead>
                   <tr>
-                    <th className="px-2 py-1 text-left">IP</th>
-                    <th className="px-2 py-1 text-left">Location</th>
-                    <th className="px-2 py-1 text-left">ASN</th>
-                    <th className="px-2 py-1 text-left">ISP</th>
-                    <th className="px-2 py-1 text-left">Ping</th>
-                    <th className="px-2 py-1 text-left">⬇️ 单线程</th>
-                    <th className="px-2 py-1 text-left">⬆️ 单线程</th>
-                    <th className="px-2 py-1 text-left">⬇️ 八线程</th>
-                    <th className="px-2 py-1 text-left">⬆️ 八线程</th>
-                    <th className="px-2 py-1 text-left">Recorded</th>
+                    <th className="px-2 py-1">IP</th>
+                    <th className="px-2 py-1">Location</th>
+                    <th className="px-2 py-1">ASN</th>
+                    <th className="px-2 py-1">ISP</th>
+                    <th className="px-2 py-1">Ping</th>
+                    <th className="px-2 py-1">⬇️ 单线程</th>
+                    <th className="px-2 py-1">⬆️ 单线程</th>
+                    <th className="px-2 py-1">⬇️ 八线程</th>
+                    <th className="px-2 py-1">⬆️ 八线程</th>
+                    <th className="px-2 py-1">Recorded</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-green-900">
                   {records.slice(0, 10).map((r) => (
                     <tr key={r.id}>
                       <td className="px-2 py-1">{maskIp(r.client_ip)}</td>
                       <td className="px-2 py-1">
-                        {r.location && r.location !== 'Unknown'
-                          ? r.location
-                          : 'Unknown'}
+                        {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
                       </td>
                       <td className="px-2 py-1">{r.asn || 'Unknown'}</td>
                       <td className="px-2 py-1">{r.isp || 'Unknown'}</td>

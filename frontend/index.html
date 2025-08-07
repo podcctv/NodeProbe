@@ -14,8 +14,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(to bottom right, #000000, #4c1d95, #1e1b4b);
-        color: #4ade80;
+        background: linear-gradient(to bottom right, #000000, #003300, #001a00);
+        color: #00ff00;
+        font-family: monospace;
       }
       .loading {
         display: flex;
@@ -24,12 +25,18 @@
         justify-content: center;
         gap: 1rem;
       }
+
+      .ascii-logo {
+        white-space: pre;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
       .spinner {
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        border: 4px solid rgba(74, 222, 128, 0.3);
-        border-top-color: #4ade80;
+        border: 4px solid rgba(0, 255, 0, 0.3);
+        border-top-color: #00ff00;
         animation: spin 1s linear infinite;
       }
       @keyframes spin {
@@ -54,6 +61,7 @@
   <body>
     <div id="root">
       <div class="loading">
+        <pre class="ascii-logo">VPS.TOWN   Node Probe</pre>
         <div class="spinner"></div>
         <div class="loading-text">Loading...</div>
       </div>
