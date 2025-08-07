@@ -172,6 +172,7 @@ function App() {
   const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
+  const [autoSpeedtestDone, setAutoSpeedtestDone] = useState(false);
 
   const downloadControllers = useRef<AbortController[]>([]);
   const uploadXhrs = useRef<XMLHttpRequest[]>([]);
@@ -205,9 +206,6 @@ function App() {
       if (data?.client_ip) {
         await runPing(data.client_ip);
         await runTraceroute(data.client_ip, true);
-        setLoadingMsg('正在进行 Speedtest 测试...');
-        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1);
-        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8);
       }
     } catch (err) {
       console.error('Failed to run initial tests', err);
@@ -484,6 +482,16 @@ function App() {
       setCurrentUploadSpeed(0);
     }
   };
+
+  useEffect(() => {
+    if (!loading && info && !autoSpeedtestDone) {
+      setAutoSpeedtestDone(true);
+      (async () => {
+        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8);
+        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1);
+      })();
+    }
+  }, [loading, info, autoSpeedtestDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopSpeedtest = () => {
     downloadControllers.current.forEach((c) => c.abort());
