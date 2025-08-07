@@ -8,7 +8,12 @@ class TestRecordBase(BaseModel):
     location: str | None = None
     asn: str | None = None
     isp: str | None = None
+    # Average round trip time in milliseconds
     ping_ms: float | None = None
+    # Minimum round trip time observed during the ping test
+    ping_min_ms: float | None = None
+    # Maximum round trip time observed during the ping test
+    ping_max_ms: float | None = None
     download_mbps: float | None = None
     upload_mbps: float | None = None
     speedtest_type: str | None = None

@@ -41,6 +41,8 @@ def test_ping_endpoint_localhost():
     assert "output" in data
     assert "ttl" in data["output"]
     assert "ping_ms" in data
+    assert "ping_min_ms" in data
+    assert "ping_max_ms" in data
 
 
 def test_traceroute_endpoint_download():
