@@ -2,11 +2,12 @@ from pathlib import Path
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import requests
 import subprocess
+import tempfile
 
 from . import models, schemas, database
 
@@ -139,5 +140,35 @@ def run_ping(host: str, count: int = 4):
         if result.returncode == 0:
             return {"output": result.stdout}
         return {"error": result.stderr or "Ping failed"}
+    except FileNotFoundError:
+        return {"error": "ping command not found"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+@app.get("/traceroute")
+def run_traceroute(host: str, download: bool = False):
+    """Run a traceroute and optionally provide the result as a downloadable file."""
+    try:
+        result = subprocess.run(
+            ["traceroute", host],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return {"error": result.stderr or "Traceroute failed"}
+        if download:
+            with tempfile.NamedTemporaryFile("w", delete=False, suffix=".txt") as tmp:
+                tmp.write(result.stdout)
+                temp_path = tmp.name
+            return FileResponse(
+                temp_path,
+                filename=f"traceroute_{host}.txt",
+                media_type="text/plain",
+            )
+        return {"output": result.stdout}
+    except FileNotFoundError:
+        return {"error": "traceroute command not found"}
     except Exception as exc:
         return {"error": str(exc)}

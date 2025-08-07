@@ -15,6 +15,11 @@ Lightweight self-hosted probe service for testing global connectivity to a targe
 
 The script installs dependencies and launches the FastAPI server together with the Vite development server.
 
+The backend exposes simple diagnostic endpoints:
+
+- `GET /ping?host=example.com` to run ICMP tests
+- `GET /traceroute?host=example.com` to trace network routes (add `&download=true` to get a text file)
+
 ## Docker 化部署
 
 本项目已支持一键部署，整合所有必要服务：
