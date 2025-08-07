@@ -12,7 +12,9 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends iputils-ping traceroute \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r backend/requirements.txt
 
 # Copy application source
 COPY backend ./backend
