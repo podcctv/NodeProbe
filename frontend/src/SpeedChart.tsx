@@ -5,43 +5,37 @@ interface SpeedChartProps {
 }
 
 export default function SpeedChart({ title, speeds, color }: SpeedChartProps) {
-  const width = 300;
+  const width = 320;
   const height = 100;
   const maxSpeed = Math.max(...speeds, 1);
-  const points = speeds
-    .map((s, i) => {
-      const x = (i / Math.max(speeds.length - 1, 1)) * width;
-      const y = height - (s / maxSpeed) * height;
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const barWidth = width / Math.max(speeds.length, 1);
+
   return (
-    <div className="space-y-1">
-      <div>{title}</div>
-      <div className="flex items-center">
-        <svg
-          width={width}
-          height={height}
-          className="bg-black bg-opacity-50 rounded shadow-md"
-        >
-          <polyline
-            points={points}
-            fill="none"
-            stroke={color}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transition: 'all 1s ease' }}
-          />
-        </svg>
-        <div className="flex items-center ml-2 space-x-1 text-xs text-gray-300">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          <span>{title}</span>
-        </div>
+    <div className="space-y-1 w-full">
+      <div className="flex justify-between items-end">
+        <span>{title}</span>
+        <span className="text-xs text-gray-300">
+          {(speeds[speeds.length - 1] ?? 0).toFixed(2)} Mbps
+        </span>
       </div>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-24 bg-black bg-opacity-50 rounded shadow-md"
+      >
+        {speeds.map((s, i) => {
+          const h = (s / maxSpeed) * height;
+          return (
+            <rect
+              key={i}
+              x={i * barWidth}
+              y={height - h}
+              width={Math.max(barWidth - 1, 1)}
+              height={h}
+              fill={color}
+            />
+          );
+        })}
+      </svg>
     </div>
   );
 }

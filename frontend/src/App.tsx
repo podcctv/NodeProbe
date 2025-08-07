@@ -660,7 +660,7 @@ function App() {
                 <span className="mr-1">⬇️</span>Download
               </div>
               <div className="text-lg">
-                {currentDownloadSpeed.toFixed(2)}
+                {currentDownloadSpeed.toFixed(2)} Mbps
               </div>
             </div>
             <div className="bg-black bg-opacity-50 rounded p-2 w-40">
@@ -668,24 +668,26 @@ function App() {
                 <span className="mr-1">⬆️</span>Upload
               </div>
               <div className="text-lg">
-                {currentUploadSpeed.toFixed(2)}
+                {currentUploadSpeed.toFixed(2)} Mbps
               </div>
             </div>
           </div>
-          {downloadSpeeds.length > 0 && (
-            <SpeedChart
-              title="Download Speed"
-              speeds={downloadSpeeds}
-              color="#00ffff"
-            />
-          )}
-          {uploadSpeeds.length > 0 && (
-            <SpeedChart
-              title="Upload Speed"
-              speeds={uploadSpeeds}
-              color="#ff00ff"
-            />
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 w-full">
+            {downloadSpeeds.length > 0 && (
+              <SpeedChart
+                title="Download Speed"
+                speeds={downloadSpeeds}
+                color="#00ffff"
+              />
+            )}
+            {uploadSpeeds.length > 0 && (
+              <SpeedChart
+                title="Upload Speed"
+                speeds={uploadSpeeds}
+                color="#ff00ff"
+              />
+            )}
+          </div>
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {speedResult.single
