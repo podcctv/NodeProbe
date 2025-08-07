@@ -55,11 +55,16 @@ function App() {
             typeof r.upload_mbps === 'number')
       );
       setRecords(filtered);
+      if (filtered.length > 0) {
+        setInfo(filtered[0]);
+      }
       if (data.message) {
         setRecordsMessage(data.message);
       }
+      return filtered;
     } catch (err) {
       console.error('Failed to load previous tests', err);
+      return [];
     }
   };
 
@@ -88,9 +93,9 @@ function App() {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-    const runInitialTests = async () => {
-      setLoading(true);
-      setLoadingMsg('正在进行 ping Traceroute 测试...');
+  const runInitialTests = async () => {
+    setLoading(true);
+    setLoadingMsg('正在进行 ping Traceroute 测试...');
     try {
       const res = await fetch('/tests', {
         method: 'POST',
@@ -102,11 +107,13 @@ function App() {
       if (data?.client_ip) {
         await runPing(data.client_ip);
         await runTraceroute(data.client_ip, true);
+        setLoadingMsg('正在进行 Speedtest 测试...');
+        await runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024);
       }
-      await loadRecords();
     } catch (err) {
       console.error('Failed to run initial tests', err);
     } finally {
+      await loadRecords();
       setLoading(false);
     }
   };
@@ -231,7 +238,10 @@ function App() {
         upload_mbps: up,
       }),
     });
-    await loadRecords();
+    const recs = await loadRecords();
+    if (recs.length > 0) {
+      setInfo(recs[0]);
+    }
     setSpeedRunning(false);
     setCurrentDownloadSpeed(0);
     setCurrentUploadSpeed(0);
@@ -285,8 +295,8 @@ function App() {
                         <th className="px-2 py-1 text-left">ASN</th>
                         <th className="px-2 py-1 text-left">ISP</th>
                         <th className="px-2 py-1 text-left">Ping</th>
-                        <th className="px-2 py-1 text-left">Download</th>
-                        <th className="px-2 py-1 text-left">Upload</th>
+                        <th className="px-2 py-1 text-left">⬇️ Download</th>
+                        <th className="px-2 py-1 text-left">⬆️ Upload</th>
                         <th className="px-2 py-1 text-left">Recorded</th>
                       </tr>
                     </thead>
@@ -342,8 +352,8 @@ function App() {
                         <th className="px-2 py-1 text-left">ASN</th>
                         <th className="px-2 py-1 text-left">ISP</th>
                         <th className="px-2 py-1 text-left">Ping</th>
-                        <th className="px-2 py-1 text-left">Download</th>
-                        <th className="px-2 py-1 text-left">Upload</th>
+                        <th className="px-2 py-1 text-left">⬇️ Download</th>
+                        <th className="px-2 py-1 text-left">⬆️ Upload</th>
                         <th className="px-2 py-1 text-left">Recorded</th>
                       </tr>
                     </thead>
@@ -437,13 +447,17 @@ function App() {
           <div>Upload Progress: {formatProgress(uploadProgress)}</div>
           <div className="flex justify-center space-x-4">
             <div className="bg-black bg-opacity-50 rounded p-2 w-40">
-              <div>Download</div>
+              <div className="flex items-center justify-center">
+                <span className="mr-1">⬇️</span>Download
+              </div>
               <div className="text-lg">
                 {currentDownloadSpeed.toFixed(2)} Mbps
               </div>
             </div>
             <div className="bg-black bg-opacity-50 rounded p-2 w-40">
-              <div>Upload</div>
+              <div className="flex items-center justify-center">
+                <span className="mr-1">⬆️</span>Upload
+              </div>
               <div className="text-lg">
                 {currentUploadSpeed.toFixed(2)} Mbps
               </div>
@@ -465,7 +479,7 @@ function App() {
           )}
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
-              {`Download: ${speedResult.down.toFixed(2)} Mbps\nUpload: ${speedResult.up.toFixed(2)} Mbps`}
+              {`⬇️ Download: ${speedResult.down.toFixed(2)} Mbps\n⬆️ Upload: ${speedResult.up.toFixed(2)} Mbps`}
             </pre>
           )}
         </div>
