@@ -86,9 +86,10 @@ templates.env.filters["short_ts"] = short_ts
 @app.on_event("startup")
 def create_default_user():
     db = database.SessionLocal()
+    host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
     try:
-        if not db.query(models.User).first():
-            host_ip = os.environ.get("SERVER_IP") or socket.gethostbyname(socket.gethostname())
+        user = db.query(models.User).first()
+        if not user:
             last_octet = host_ip.split(".")[-1]
             password = f"nodeprobe{last_octet}"
             user = models.User(
@@ -98,8 +99,13 @@ def create_default_user():
             db.add(user)
             db.commit()
             logger.info(
-                f"Initial admin credentials - username: NodeProbe password: {password}"
+                "Initial admin credentials - username: NodeProbe password: %s",
+                password,
             )
+        logger.info(
+            "Login help: visit http://%s:8380/ to access the dashboard.",
+            host_ip,
+        )
     finally:
         db.close()
 
