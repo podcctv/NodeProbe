@@ -64,3 +64,17 @@ def test_speedtest_endpoints():
     assert res_up.status_code == 200
     data = res_up.json()
     assert data.get("received") == size
+
+
+def test_create_speedtest_record():
+    payload = {
+        "test_target": "speedtest",
+        "speedtest_type": "single",
+        "download_mbps": 10.0,
+        "upload_mbps": 5.0,
+    }
+    res = client.post("/tests", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["speedtest_type"] == "single"
+    assert data["download_mbps"] == 10.0
