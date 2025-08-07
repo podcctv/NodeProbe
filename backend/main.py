@@ -102,14 +102,17 @@ def create_default_user():
             )
             db.add(user)
             db.commit()
-            logger.info(
-                "Initial admin credentials - username: NodeProbe password: %s",
-                password,
+            msg = (
+                "Initial admin credentials - username: NodeProbe password: %s"
+                % password
             )
-        logger.info(
-            "Login help: visit http://%s:8380/ to access the dashboard.",
-            host_ip,
+            logger.info(msg)
+            print(msg, flush=True)
+        log_msg = (
+            "Login help: visit http://%s:8380/ to access the dashboard." % host_ip
         )
+        logger.info(log_msg)
+        print(log_msg, flush=True)
     finally:
         db.close()
 
