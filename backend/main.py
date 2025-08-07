@@ -187,6 +187,21 @@ def _ping(host: str) -> float | None:
     return None
 
 
+def _get_client_ip(request: Request) -> str:
+    """Retrieve the real client IP from the request.
+
+    Checks common proxy headers (``CF-Connecting-IP`` and ``X-Forwarded-For``)
+    before falling back to ``request.client.host``.
+    """
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        return cf_ip
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host
+
+
 @app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
 def login_form(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
@@ -209,7 +224,7 @@ def register(
             {"request": request, "error": "Username already exists"},
             status_code=400,
         )
-    ip = request.client.host or "0.0.0.0"
+    ip = _get_client_ip(request) or "0.0.0.0"
     last = ip.split(".")[-1]
     password = f"nodeprobe{last}"
     user = models.User(
@@ -290,7 +305,7 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
     ``/tests`` API which aggregates records from the last ten minutes.
     """
 
-    client_ip = request.client.host
+    client_ip = _get_client_ip(request)
     data = {"client_ip": client_ip, "test_target": "default"}
 
     ping_ms = _ping(client_ip)
@@ -367,7 +382,7 @@ def create_test(
     record: schemas.TestRecordCreate, request: Request, db: Session = Depends(get_db)
 ):
     data = record.dict()
-    client_ip = request.client.host
+    client_ip = _get_client_ip(request)
     data.setdefault("client_ip", client_ip)
 
     if not data.get("location") or not data.get("asn") or not data.get("isp"):

@@ -35,6 +35,16 @@ def test_homepage_handles_null_client_ip():
         db.close()
 
 
+def test_homepage_uses_forwarded_for_header():
+    ip = "127.0.0.2"
+    res = client.get("/probe", headers={"X-Forwarded-For": ip})
+    assert res.status_code == 200
+    res_records = client.get("/tests")
+    data = res_records.json()
+    ips = [r.get("client_ip") for r in data.get("records", [])]
+    assert ip in ips
+
+
 def test_ping_endpoint_localhost():
     res = client.get("/ping", params={"host": "127.0.0.1", "count": 1})
     data = res.json()
