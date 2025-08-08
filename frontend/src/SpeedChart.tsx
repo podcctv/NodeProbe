@@ -11,41 +11,16 @@ interface SpeedChartProps {
 
 export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvasRef.current.height);
-    if (multi) {
-      gradient.addColorStop(0, 'rgba(229,58,214,0.95)');
-      gradient.addColorStop(1, 'rgba(229,58,214,0.25)');
-    } else {
-      gradient.addColorStop(0, 'rgba(39,232,229,0.95)');
-      gradient.addColorStop(1, 'rgba(39,232,229,0.25)');
-    }
-
-    const borderColor = multi ? '#b824a9' : '#16c3bf';
-
-    const labels = speeds.map((_, i) => `${i + 1}`);
-
-    const chart = new Chart(ctx, {
+    chartRef.current = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            data: speeds,
-            backgroundColor: gradient,
-            borderColor,
-            borderWidth: 1.5,
-            borderRadius: 5,
-            barPercentage: 0.5,
-            categoryPercentage: 0.55,
-          },
-        ],
-      },
+      data: { labels: [], datasets: [{ data: [], borderWidth: 1.5, borderRadius: 5, barPercentage: 0.5, categoryPercentage: 0.55 }] },
       options: {
         indexAxis: 'x',
         maintainAspectRatio: false,
@@ -86,7 +61,35 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
       },
     });
 
-    return () => chart.destroy();
+    return () => {
+      chartRef.current?.destroy();
+      chartRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const canvas = canvasRef.current;
+    if (!chart || !canvas) return;
+    const ctx = chart.ctx;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    if (multi) {
+      gradient.addColorStop(0, 'rgba(229,58,214,0.95)');
+      gradient.addColorStop(1, 'rgba(229,58,214,0.25)');
+    } else {
+      gradient.addColorStop(0, 'rgba(39,232,229,0.95)');
+      gradient.addColorStop(1, 'rgba(39,232,229,0.25)');
+    }
+
+    const borderColor = multi ? '#b824a9' : '#16c3bf';
+
+    chart.data.labels = speeds.map((_, i) => `${i + 1}`);
+    const dataset = chart.data.datasets[0];
+    dataset.data = speeds;
+    dataset.backgroundColor = gradient;
+    dataset.borderColor = borderColor;
+    chart.update();
   }, [speeds, multi]);
 
   return <canvas ref={canvasRef} className="chart" />;
