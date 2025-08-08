@@ -112,6 +112,19 @@
   padding: 8px;
   position: relative;
   background: rgba(0, 0, 0, 0.18);
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 1440px) {
+  .panel {
+    height: 420px;
+  }
+}
+@media (max-width: 768px) {
+  .panel {
+    height: 300px;
+  }
 }
 .panel__title {
   font-size: 12px;
@@ -119,19 +132,9 @@
   opacity: 0.9;
 }
 .chart {
-  height: 340px;
+  flex: 1;
   position: relative;
   overflow: hidden;
-}
-@media (min-width: 1440px) {
-  .chart {
-    height: 380px;
-  }
-}
-@media (max-width: 768px) {
-  .chart {
-    height: 260px;
-  }
 }
 .panel__peak {
   position: absolute;
