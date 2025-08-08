@@ -58,7 +58,7 @@ const ASCII_LOGO = [
 function AsciiLogo() {
   return (
     <pre
-      className="mx-auto mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch] text-left"
+      className="mx-auto mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch] text-center"
       style={{
         textShadow: '0 0 6px rgba(0,255,0,0.25)',
         fontVariantLigatures: 'none',
