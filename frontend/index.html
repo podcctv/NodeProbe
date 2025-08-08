@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Favicon -->
+    <link rel="icon" href="/vite.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NodeProbe</title>
     <style>
@@ -19,7 +20,7 @@
         background-size: cover;
         background-repeat: no-repeat;
         color: #00ff00;
-        font-family: monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
       }
       .loading {
         display: flex;
@@ -27,11 +28,21 @@
         align-items: center;
         justify-content: center;
         gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid rgba(0, 255, 0, 0.12);
+        border-radius: 10px;
+        box-shadow: 0 0 40px rgba(0, 255, 0, 0.05);
+        max-width: min(90vw, 960px);
+        text-align: center;
       }
 
       .ascii-logo {
         white-space: pre;
-        margin-bottom: 1rem;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.05;
+        text-shadow: 0 0 6px rgba(0, 255, 0, 0.25);
+        overflow: auto;
+        max-height: 40vh;
       }
       .spinner {
         width: 48px;
@@ -40,6 +51,7 @@
         border: 4px solid rgba(0, 255, 0, 0.3);
         border-top-color: #00ff00;
         animation: spin 1s linear infinite;
+        will-change: transform;
       }
       @keyframes spin {
         to {
@@ -58,11 +70,35 @@
           opacity: 0.5;
         }
       }
+
+      /* Respect reduced motion preferences */
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
+        .loading-text {
+          animation: none;
+        }
+      }
+
+      /* Visually hidden but screen-reader accessible text */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
     </style>
   </head>
   <body>
     <div id="root">
-      <div class="loading">
+      <!-- Status region for screen readers -->
+      <div class="loading" role="status" aria-live="polite" aria-busy="true">
         <pre class="ascii-logo">
 __      _______   _____ _______ ______          ___   _
 \ \    / /  __ \ / ____|__   __/ __ \ \        / / \ | |
@@ -71,14 +107,15 @@ __      _______   _____ _______ ______          ___   _
    \  /  | |     ____) |  | | | |__| | \  /\  /  | |\  |
     \/   |_|    |_____(_) |_|  \____/   \/  \/   |_| \_|
 
- _   _           _        _____           _
+_   _           _        _____           _
 | \ | |         | |      |  __ \         | |
 |  \| | ___   __| | ___  | |__) | __ ___ | |__   ___
 | . ` |/ _ \ / _` |/ _ \ |  ___/ '__/ _ \| '_ \ / _ \
 | |\  | (_) | (_| |  __/ | |   | | | (_) | |_) |  __/
 |_| \_|\___/ \__,_|\___| |_|   |_|  \___/|_.__/ \___|
         </pre>
-        <div class="spinner"></div>
+        <span class="sr-only">正在加载，请稍候</span>
+        <div class="spinner" aria-hidden="true"></div>
         <div class="loading-text">测试中，请不要关闭或刷新。</div>
       </div>
     </div>

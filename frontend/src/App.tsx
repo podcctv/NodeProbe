@@ -463,11 +463,24 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4">
-        <div className="flex flex-col items-center space-y-4">
-          <pre className="whitespace-pre font-mono mx-auto">{ASCII_LOGO}</pre>
-          <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
-          <div className="text-lg animate-pulse">测试中，请不要关闭或刷新。</div>
-          {loadingMsg && <div className="text-sm animate-pulse">{loadingMsg}</div>}
+        <div
+          className="flex flex-col items-center space-y-4 p-5 border border-green-500/20 rounded-lg shadow-[0_0_40px_rgba(0,255,0,0.05)] max-w-[min(90vw,960px)] text-center"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <pre
+            className="whitespace-pre font-mono mx-auto mb-2 leading-[1.05] overflow-auto max-h-[40vh]"
+            style={{ textShadow: '0 0 6px rgba(0,255,0,0.25)' }}
+          >
+            {ASCII_LOGO}
+          </pre>
+          <span className="sr-only">正在加载，请稍候</span>
+          <div className="w-12 h-12 border-4 border-green-400/30 border-t-green-400 rounded-full animate-spin will-change-[transform] motion-reduce:animate-none" />
+          <div className="text-lg animate-pulse motion-reduce:animate-none">测试中，请不要关闭或刷新。</div>
+          {loadingMsg && (
+            <div className="text-sm animate-pulse motion-reduce:animate-none">{loadingMsg}</div>
+          )}
           {downloadProgress.size > 0 && (
             <div className="text-sm">
               下载进度：{formatProgress(downloadProgress)} ⬇️ Download{' '}
@@ -488,7 +501,12 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4">
       <div className="w-full max-w-3xl mx-auto space-y-8">
-        <pre className="whitespace-pre font-mono mx-auto">{ASCII_LOGO}</pre>
+        <pre
+          className="whitespace-pre font-mono mx-auto mb-2 leading-[1.05] overflow-auto max-h-[40vh]"
+          style={{ textShadow: '0 0 6px rgba(0,255,0,0.25)' }}
+        >
+          {ASCII_LOGO}
+        </pre>
         {info ? (
           <div className="space-y-2 text-center">
             <h1 className="text-xl mb-4">Your Connection Info</h1>
