@@ -43,22 +43,18 @@ const ASCII_LOGO = [
   "   \\  /  | |     ____) |  | | | |__| | \\  /\\  /  | |\\  |",
   "    \\/   |_|    |_____(_) |_|  \\____/   \\/  \\/   |_| \\_|",
   "",
-  "V P S . T O W N",
-  "",
   "_   _           _        _____           _",
   "| \\ | |         | |      |  __ \\         | |",
   "|  \\| | ___   __| | ___  | |__) | __ ___ | |__   ___",
   "| . ` |/ _ \\ / _` |/ _ \\ |  ___/ '__/ _ \\| '_ \\ / _ \\",
   "| |\\  | (_) | (_| |  __/ | |   | | | (_) | |_) |  __/",
-  "|_| \\_|\\___/ \\__,_|\\___| |_|   |_|  \\___/|_.__/ \\___|",
-  "",
-  "N o d e P r o b e"
+  "|_| \\_|\\___/ \\__,_|\\___| |_|   |_|  \\___/|_.__/ \\___|"
 ].join('\n');
 
 function AsciiLogo() {
     return (
       <pre
-        className="mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch] self-start text-left"
+        className="mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch] mx-auto text-center"
         style={{
         textShadow: '0 0 6px rgba(0,255,0,0.25)',
         fontVariantLigatures: 'none',
