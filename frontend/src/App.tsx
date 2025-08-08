@@ -577,30 +577,31 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4 leading-[1.4]">
-      <div className="w-full max-w-3xl mx-auto space-y-8">
+      <div className="app space-y-8">
         <AsciiLogo />
-        {info ? (
-          <TestSection title="Your Connection Info">
-            <div>IP: {maskIp(info.client_ip)}</div>
-            <div>Location: {info.location || 'Unknown'}</div>
-            <div>ASN: {info.asn || 'Unknown'}</div>
-            <div>ISP: {info.isp || 'Unknown'}</div>
-            {typeof info.ping_ms === 'number' && (
-              <div className={getPingColor(info.ping_ms)}>
-                Ping: {info.ping_ms.toFixed(2)} ms
+        <div className="dashboard">
+          {info ? (
+            <TestSection title="Your Connection Info">
+              <div>IP: {maskIp(info.client_ip)}</div>
+              <div>Location: {info.location || 'Unknown'}</div>
+              <div>ASN: {info.asn || 'Unknown'}</div>
+              <div>ISP: {info.isp || 'Unknown'}</div>
+              {typeof info.ping_ms === 'number' && (
+                <div className={getPingColor(info.ping_ms)}>
+                  Ping: {info.ping_ms.toFixed(2)} ms
+                </div>
+              )}
+              <div className="text-sm text-gray-400">
+                Recorded at: {new Date(info.timestamp).toLocaleString()}
               </div>
-            )}
-            <div className="text-sm text-gray-400">
-              Recorded at: {new Date(info.timestamp).toLocaleString()}
-            </div>
-          </TestSection>
-        ) : (
-          <TestSection title="Your Connection Info">
-            <div>No info available</div>
-          </TestSection>
-        )}
+            </TestSection>
+          ) : (
+            <TestSection title="Your Connection Info">
+              <div>No info available</div>
+            </TestSection>
+          )}
 
-        <TestSection title="Recent Tests">
+          <TestSection title="Recent Tests">
           {sortedRecords.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
@@ -727,119 +728,102 @@ function App() {
           )}
         </TestSection>
 
-        <TestSection title="Speed Test">
-          <div className="space-y-4 border border-[rgba(0,255,0,0.2)] rounded p-4 bg-black/40">
-            <div className="space-y-2">
-              <div className="flex justify-center space-x-2">
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)
-                  }
-                >
-                  [单线程]100M
-                </button>
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)
-                  }
-                >
-                  [单线程]500M
-                </button>
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
-                  }
-                >
-                  [单线程]1G
-                </button>
-              </div>
-              <div className="flex justify-center space-x-2">
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)
-                  }
-                >
-                  [八线程]100M
-                </button>
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)
-                  }
-                >
-                  [八线程]500M
-                </button>
-                <button
-                  className="px-4 py-1 rounded bg-green-600 text-black"
-                  disabled={speedRunning}
-                  onClick={() =>
-                    runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
-                  }
-                >
-                  [八线程]1G
-                </button>
-              </div>
-              <div className="flex justify-center">
-                <button
-                  className="px-4 py-1 rounded bg-red-600 text-black"
-                  disabled={!speedRunning}
-                  onClick={stopSpeedtest}
-                >
-                  STOP
-                </button>
-              </div>
-            </div>
-            <div>
-              Download Progress: {formatProgress(downloadProgress)}{' '}
-              <span className="ml-2">
-                ⬇️ Download {currentDownloadSpeed.toFixed(2)} Mbps
-              </span>
-            </div>
-            <div>
-              Upload Progress: {formatProgress(uploadProgress)}{' '}
-              <span className="ml-2">
-                ⬆️ Upload {currentUploadSpeed.toFixed(2)} Mbps
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 w-full">
-              {downloadSpeeds.length > 0 && (
-                <SpeedChart
-                  title="Download Speed"
-                  speeds={downloadSpeeds}
-                  color="#00ffff"
-                />
-              )}
-              {uploadSpeeds.length > 0 && (
-                <SpeedChart
-                  title="Upload Speed"
-                  speeds={uploadSpeeds}
-                  color="#ff00ff"
-                />
-              )}
-            </div>
-            {speedResult && (
-              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
-                {speedResult.single
-                  ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
-                  : ''}
-                {speedResult.multi
-                  ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
-                  : ''}
-              </pre>
+        <TestSection title="Speed Test" className="card--wide speedtest">
+          <div className="seg">
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)}
+            >
+              单线程100M
+            </button>
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)}
+            >
+              单线程500M
+            </button>
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)}
+            >
+              单线程1G
+            </button>
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)}
+            >
+              八线程100M
+            </button>
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)}
+            >
+              八线程500M
+            </button>
+            <button
+              className="seg__btn"
+              disabled={speedRunning}
+              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)}
+            >
+              八线程1G
+            </button>
+          </div>
+          <div className="flex justify-center mt-2">
+            <button
+              className="seg__btn bg-red-600 text-black"
+              disabled={!speedRunning}
+              onClick={stopSpeedtest}
+            >
+              STOP
+            </button>
+          </div>
+          <div className="speedtest__progress mt-4">
+            <span>Download Progress: {formatProgress(downloadProgress)}</span>
+            <span>
+              <span className="icon">⬇️</span> Download {currentDownloadSpeed.toFixed(2)} Mbps
+            </span>
+          </div>
+          <div className="speedtest__progress mt-2">
+            <span>Upload Progress: {formatProgress(uploadProgress)}</span>
+            <span>
+              <span className="icon">⬆️</span> Upload {currentUploadSpeed.toFixed(2)} Mbps
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+            {downloadSpeeds.length > 0 && (
+              <SpeedChart
+                title="Download Speed"
+                speeds={downloadSpeeds}
+                color="#00ffff"
+              />
+            )}
+            {uploadSpeeds.length > 0 && (
+              <SpeedChart
+                title="Upload Speed"
+                speeds={uploadSpeeds}
+                color="#ff00ff"
+              />
             )}
           </div>
+          {speedResult && (
+            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded mt-4">
+              {speedResult.single
+                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
+                : ''}
+              {speedResult.multi
+                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
+                : ''}
+            </pre>
+          )}
         </TestSection>
       </div>
     </div>
+  </div>
   );
 }
 
