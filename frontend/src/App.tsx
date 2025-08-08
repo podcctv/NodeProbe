@@ -581,7 +581,7 @@ function App() {
         <AsciiLogo />
         <div className="dashboard">
           {info ? (
-            <TestSection title="Your Connection Info">
+            <TestSection title="Your Connection Info" className="card--info">
               <div>IP: {maskIp(info.client_ip)}</div>
               <div>Location: {info.location || 'Unknown'}</div>
               <div>ASN: {info.asn || 'Unknown'}</div>
@@ -596,12 +596,12 @@ function App() {
               </div>
             </TestSection>
           ) : (
-            <TestSection title="Your Connection Info">
+            <TestSection title="Your Connection Info" className="card--info">
               <div>No info available</div>
             </TestSection>
           )}
 
-          <TestSection title="Recent Tests">
+          <TestSection title="Recent Tests" className="card--recent">
           {sortedRecords.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
@@ -688,7 +688,7 @@ function App() {
           )}
         </TestSection>
 
-        <TestSection title="Auto Ping Test">
+        <TestSection title="Auto Ping Test" className="card--ping">
           {pingOutput && (
             <div>
               <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
@@ -708,7 +708,7 @@ function App() {
           )}
         </TestSection>
 
-        <TestSection title="Traceroute">
+        <TestSection title="Traceroute" className="card--trace">
           {traceOutput && (
             <div>
               <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
@@ -728,7 +728,7 @@ function App() {
           )}
         </TestSection>
 
-        <section className="card card--speed card--wide">
+        <section className="card card--speed">
           <header className="speed__header">
             <h2 className="card__title">Speed Test</h2>
             <div className="seg">
@@ -791,13 +791,13 @@ function App() {
               <div>
                 Download:
                 <span className="mono"> {formatProgress(downloadProgress)}</span>{' '}
-                <span className="icon">⬇</span>
+                <i className="icon-dl" aria-hidden="true"></i>
                 <span className="mono"> {currentDownloadSpeed.toFixed(2)} Mbps</span>
               </div>
               <div>
                 Upload:
                 <span className="mono"> {formatProgress(uploadProgress)}</span>{' '}
-                <span className="icon">⬆</span>
+                <i className="icon-ul" aria-hidden="true"></i>
                 <span className="mono"> {currentUploadSpeed.toFixed(2)} Mbps</span>
               </div>
             </div>
@@ -809,7 +809,7 @@ function App() {
                 <div className="panel__title">Download</div>
                 <SpeedChart
                   speeds={downloadSpeeds}
-                  color={currentThreads === 1 ? '#2ff' : '#f3f'}
+                  multi={currentThreads > 1}
                 />
                 <div className="panel__peak">
                   {Math.max(...downloadSpeeds).toFixed(2)} Mbps
@@ -821,7 +821,7 @@ function App() {
                 <div className="panel__title">Upload</div>
                 <SpeedChart
                   speeds={uploadSpeeds}
-                  color={currentThreads === 1 ? '#2ff' : '#f3f'}
+                  multi={currentThreads > 1}
                 />
                 <div className="panel__peak">
                   {Math.max(...uploadSpeeds).toFixed(2)} Mbps
