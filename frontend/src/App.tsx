@@ -463,7 +463,7 @@ function App() {
   };
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4 leading-[1.4]">
         <div
           className="flex flex-col items-center space-y-4 p-5 border border-green-500/20 rounded-lg shadow-[0_0_40px_rgba(0,255,0,0.05)] max-w-[min(90vw,960px)] text-center"
           role="status"
@@ -500,7 +500,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4 leading-[1.4]">
       <div className="w-full max-w-3xl mx-auto space-y-8">
         <pre
           className="whitespace-pre font-mono mx-auto mb-2 leading-[1.05] overflow-auto max-h-[40vh]"
@@ -531,23 +531,23 @@ function App() {
           {records.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
-                <thead>
+                <thead className="bg-[rgb(0,50,0)]">
                   <tr>
-                    <th className="px-2 py-1 border border-green-700">IP</th>
-                    <th className="px-2 py-1 border border-green-700">Location</th>
-                    <th className="px-2 py-1 border border-green-700">ASN</th>
-                    <th className="px-2 py-1 border border-green-700">ISP</th>
-                    <th className="px-2 py-1 border border-green-700">Ping</th>
-                    <th className="px-2 py-1 border border-green-700">⬇️ 单线程</th>
-                    <th className="px-2 py-1 border border-green-700">⬆️ 单线程</th>
-                    <th className="px-2 py-1 border border-green-700">⬇️ 八线程</th>
-                    <th className="px-2 py-1 border border-green-700">⬆️ 八线程</th>
-                    <th className="px-2 py-1 border border-green-700">Recorded</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">IP</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">Location</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">ASN</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">ISP</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">Ping</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">⬇️ 单线程</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">⬆️ 单线程</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">⬇️ 八线程</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">⬆️ 八线程</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold">Recorded</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.slice(0, 10).map((r) => (
-                    <tr key={r.id}>
+                    <tr key={r.id} className="odd:bg-green-950 even:bg-green-900">
                       <td className="px-2 py-1 border border-green-700">{maskIp(r.client_ip)}</td>
                       <td className="px-2 py-1 border border-green-700">
                         {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
@@ -596,7 +596,7 @@ function App() {
 
         <TestSection title="Auto Ping Test">
           {pingOutput && (
-            <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
+            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
               {pingOutput}
             </pre>
           )}
@@ -604,120 +604,122 @@ function App() {
 
         <TestSection title="Traceroute">
           {traceOutput && (
-            <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
+            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
               {traceOutput}
             </pre>
           )}
         </TestSection>
 
         <TestSection title="Speed Test">
-          <div className="space-y-2">
-            <div className="flex justify-center space-x-2">
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)
-                }
-              >
-                [单线程]100M
-              </button>
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)
-                }
-              >
-                [单线程]500M
-              </button>
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
-                }
-              >
-                [单线程]1G
-              </button>
+          <div className="space-y-4 border border-[rgba(0,255,0,0.2)] rounded p-4 bg-black/40">
+            <div className="space-y-2">
+              <div className="flex justify-center space-x-2">
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)
+                  }
+                >
+                  [单线程]100M
+                </button>
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)
+                  }
+                >
+                  [单线程]500M
+                </button>
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
+                  }
+                >
+                  [单线程]1G
+                </button>
+              </div>
+              <div className="flex justify-center space-x-2">
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)
+                  }
+                >
+                  [八线程]100M
+                </button>
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)
+                  }
+                >
+                  [八线程]500M
+                </button>
+                <button
+                  className="px-4 py-1 rounded bg-green-600 text-black"
+                  disabled={speedRunning}
+                  onClick={() =>
+                    runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
+                  }
+                >
+                  [八线程]1G
+                </button>
+              </div>
+              <div className="flex justify-center">
+                <button
+                  className="px-4 py-1 rounded bg-red-600 text-black"
+                  disabled={!speedRunning}
+                  onClick={stopSpeedtest}
+                >
+                  STOP
+                </button>
+              </div>
             </div>
-            <div className="flex justify-center space-x-2">
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)
-                }
-              >
-                [八线程]100M
-              </button>
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)
-                }
-              >
-                [八线程]500M
-              </button>
-              <button
-                className="px-4 py-1 rounded bg-green-600 text-black"
-                disabled={speedRunning}
-                onClick={() =>
-                  runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
-                }
-              >
-                [八线程]1G
-              </button>
+            <div>
+              Download Progress: {formatProgress(downloadProgress)}{' '}
+              <span className="ml-2">
+                ⬇️ Download {currentDownloadSpeed.toFixed(2)} Mbps
+              </span>
             </div>
-            <div className="flex justify-center">
-              <button
-                className="px-4 py-1 rounded bg-red-600 text-black"
-                disabled={!speedRunning}
-                onClick={stopSpeedtest}
-              >
-                STOP
-              </button>
+            <div>
+              Upload Progress: {formatProgress(uploadProgress)}{' '}
+              <span className="ml-2">
+                ⬆️ Upload {currentUploadSpeed.toFixed(2)} Mbps
+              </span>
             </div>
-          </div>
-          <div>
-            Download Progress: {formatProgress(downloadProgress)}{' '}
-            <span className="ml-2">
-              ⬇️ Download {currentDownloadSpeed.toFixed(2)} Mbps
-            </span>
-          </div>
-          <div>
-            Upload Progress: {formatProgress(uploadProgress)}{' '}
-            <span className="ml-2">
-              ⬆️ Upload {currentUploadSpeed.toFixed(2)} Mbps
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 w-full">
-            {downloadSpeeds.length > 0 && (
-              <SpeedChart
-                title="Download Speed"
-                speeds={downloadSpeeds}
-                color="#00ffff"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 w-full">
+              {downloadSpeeds.length > 0 && (
+                <SpeedChart
+                  title="Download Speed"
+                  speeds={downloadSpeeds}
+                  color="#00ffff"
+                />
+              )}
+              {uploadSpeeds.length > 0 && (
+                <SpeedChart
+                  title="Upload Speed"
+                  speeds={uploadSpeeds}
+                  color="#ff00ff"
+                />
+              )}
+            </div>
+            {speedResult && (
+              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
+                {speedResult.single
+                  ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
+                  : ''}
+                {speedResult.multi
+                  ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
+                  : ''}
+              </pre>
             )}
-            {uploadSpeeds.length > 0 && (
-              <SpeedChart
-                title="Upload Speed"
-                speeds={uploadSpeeds}
-                color="#ff00ff"
-              />
-            )}
           </div>
-          {speedResult && (
-            <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
-              {speedResult.single
-                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
-                : ''}
-              {speedResult.multi
-                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
-                : ''}
-            </pre>
-          )}
         </TestSection>
       </div>
     </div>

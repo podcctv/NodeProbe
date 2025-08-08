@@ -11,16 +11,16 @@ export default function SpeedChart({ title, speeds, color }: SpeedChartProps) {
   const barWidth = width / Math.max(speeds.length, 1);
 
   return (
-    <div className="space-y-1 w-full">
+    <div className="space-y-1 w-full border border-[rgba(0,255,0,0.2)] p-2 rounded bg-black/50 shadow-[0_0_10px_rgba(0,255,0,0.1)]">
       <div className="flex justify-between items-end">
-        <span>{title}</span>
+        <span className="font-bold">{title}</span>
         <span className="text-xs text-gray-300">
           {(speeds[speeds.length - 1] ?? 0).toFixed(2)} Mbps
         </span>
       </div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-24 bg-black bg-opacity-50 rounded shadow-md"
+        className="w-full h-24 bg-black bg-opacity-50 rounded"
       >
         {speeds.map((s, i) => {
           const h = (s / maxSpeed) * height;
