@@ -7,4 +7,5 @@ jinja2
 httpx
 itsdangerous
 python-multipart
+wcwidth
 
