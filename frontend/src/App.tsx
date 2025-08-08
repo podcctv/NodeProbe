@@ -51,6 +51,26 @@ const ASCII_LOGO = [
   "|_| \\_|\\___/ \\__,_|\\___| |_|   |_|  \\___/|_.__/ \\___|"
 ].join('\n');
 
+function AsciiLogo() {
+  return (
+    <pre
+      className="mx-auto mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch]"
+      style={{
+        textShadow: '0 0 6px rgba(0,255,0,0.25)',
+        fontVariantLigatures: 'none',
+        fontKerning: 'none',
+        letterSpacing: 0,
+        tabSize: 4,
+        fontSize: 'clamp(10px, 1.6vw, 22px)',
+        WebkitFontSmoothing: 'antialiased',
+        textRendering: 'geometricPrecision',
+      }}
+    >
+      {ASCII_LOGO}
+    </pre>
+  );
+}
+
 function App() {
   const [info, setInfo] = useState<TestRecord | null>(null);
   const [records, setRecords] = useState<TestRecord[]>([]);
@@ -58,6 +78,17 @@ function App() {
   const [pingOutput, setPingOutput] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (loading) {
+      html.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } else {
+      html.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+  }, [loading]);
 
   const loadRecords = async () => {
     try {
@@ -470,12 +501,7 @@ function App() {
           aria-live="polite"
           aria-busy="true"
         >
-          <pre
-            className="whitespace-pre font-mono mx-auto mb-2 leading-[1.05] overflow-auto max-h-[40vh]"
-            style={{ textShadow: '0 0 6px rgba(0,255,0,0.25)' }}
-          >
-            {ASCII_LOGO}
-          </pre>
+          <AsciiLogo />
           <span className="sr-only">正在加载，请稍候</span>
           <div className="w-12 h-12 border-4 border-green-400/30 border-t-green-400 rounded-full animate-spin will-change-[transform] motion-reduce:animate-none" />
           <div className="text-lg animate-pulse motion-reduce:animate-none">测试中，请不要关闭或刷新。</div>
@@ -502,12 +528,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4 leading-[1.4]">
       <div className="w-full max-w-3xl mx-auto space-y-8">
-        <pre
-          className="whitespace-pre font-mono mx-auto mb-2 leading-[1.05] overflow-auto max-h-[40vh]"
-          style={{ textShadow: '0 0 6px rgba(0,255,0,0.25)' }}
-        >
-          {ASCII_LOGO}
-        </pre>
+        <AsciiLogo />
         {info ? (
           <TestSection title="Your Connection Info">
             <div>IP: {maskIp(info.client_ip)}</div>
