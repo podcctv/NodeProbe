@@ -38,6 +38,7 @@ import tempfile
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import models, schemas, database
+from .text_utils import sanitize_banner
 
 # Configure logging so Docker logs include informative startup messages
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +59,17 @@ frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 assets_dir = frontend_dist / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+
+ASCII_BANNER = sanitize_banner(
+    """
+__     ______  ____ _____ _____        ___   _       _   _  ___  ____  _____   ____            _
+\ \   / /  _ \/ ___|_   _/ _ \ \      / / \ | |     | \ | |/ _ \|  _ \| ____| |  _ \ _ __ ___ | |__   ___
+ \ \ / /| |_) \___ \ | || | | \ \ /\ / /|  \| |     |  \| | | | | | | |  _|   | |_) | '__/ _ \| '_ \ / _ \
+  \ V / |  __/ ___) || || |_| |\ V  V / | |\  |     | |\  | |_| | |_| | |___  |  __/| | | (_) | |_) |  __/
+   \_/  |_|   |____(_)_| \___/  \_/\_/  |_| \_|     |_| \_|\___/|____/|_____| |_|   |_|  \___/|_.__/ \___|
+"""
+)
 
 
 def mask_ip(ip: str | None) -> str | None:
@@ -477,7 +489,8 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
         return FileResponse(index_file)
 
     return templates.TemplateResponse(
-        "index.html", {"request": request, "info": db_record}
+        "index.html",
+        {"request": request, "info": db_record, "ascii_banner": ASCII_BANNER},
     )
 @app.get("/api")
 def api_root():

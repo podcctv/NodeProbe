@@ -35,7 +35,12 @@ function maskIp(ip?: string | null) {
   return ip;
 }
 
-const ASCII_LOGO = [
+const RISKY = /[\u0300-\u036F]|\u3000|[\uFF00-\uFF65]/g;
+function sanitizeBanner(s: string): string {
+  return s.normalize('NFKC').replace(RISKY, '');
+}
+
+const ASCII_LOGO = sanitizeBanner([
   "__      _______   _____ _______ ______          ___   _",
   "\\ \\    / /  __ \\ / ____|__   __/ __ \\ \\        / / \\ | |",
   " \\ \\  / /| |__) | (___    | | | |  | \\ \\  /\\  / /|  \\| |",
@@ -49,7 +54,7 @@ const ASCII_LOGO = [
   "| . ` |/ _ \\ / _` |/ _ \\ |  ___/ '__/ _ \\| '_ \\ / _ \\",
   "| |\\  | (_) | (_| |  __/ | |   | | | (_) | |_) |  __/",
   "|_| \\_|\\___/ \\__,_|\\___| |_|   |_|  \\___/|_.__/ \\___|"
-].join('\n');
+].join('\n'));
 
 function AsciiLogo() {
     return (
@@ -61,7 +66,7 @@ function AsciiLogo() {
         fontKerning: 'none',
         letterSpacing: 0,
         tabSize: 4,
-        fontSize: 'clamp(10px, 1.6vw, 22px)',
+        fontSize: '28px',
         WebkitFontSmoothing: 'antialiased',
         textRendering: 'geometricPrecision',
       }}

@@ -8,6 +8,7 @@ full-width characters when rendering aligned text.
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from wcwidth import wcwidth
 
@@ -25,6 +26,20 @@ def sanitize_text(s: str) -> str:
     s = unicodedata.normalize("NFKC", s)
     # Remove all combining marks
     return "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+
+
+RISKY = re.compile(
+    r"[\u0300-\u036F]"  # combining marks
+    r"|\u3000"            # full-width space
+    r"|[\uFF00-\uFF65]"  # full-width ASCII variants
+)
+
+
+def sanitize_banner(s: str) -> str:
+    """Remove characters that tend to disrupt monospace ASCII art."""
+
+    s = unicodedata.normalize("NFKC", s)
+    return RISKY.sub("", s)
 
 
 def visual_width(s: str) -> int:
