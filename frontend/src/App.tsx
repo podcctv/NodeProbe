@@ -59,7 +59,7 @@ const ASCII_LOGO = sanitizeBanner([
 function AsciiLogo() {
     return (
       <pre
-        className="mb-2 overflow-hidden whitespace-pre font-mono leading-[1.1] w-[80ch] mx-auto text-center"
+        className="mb-2 overflow-hidden whitespace-pre font-mono w-[80ch] mx-auto text-center"
         style={{
         textShadow: '0 0 6px rgba(0,255,0,0.25)',
         fontVariantLigatures: 'none',
@@ -67,8 +67,11 @@ function AsciiLogo() {
         letterSpacing: 0,
         tabSize: 4,
         fontSize: '28px',
+        lineHeight: '28px',
         WebkitFontSmoothing: 'antialiased',
         textRendering: 'geometricPrecision',
+        WebkitTextSizeAdjust: '100%',
+        textSizeAdjust: '100%',
       }}
     >
       {ASCII_LOGO}
