@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import SpeedChart from './SpeedChart';
+import TestSection from './TestSection';
 
 interface TestRecord {
   id: number;
@@ -508,8 +509,7 @@ function App() {
           {ASCII_LOGO}
         </pre>
         {info ? (
-          <div className="space-y-2 text-center">
-            <h1 className="text-xl mb-4">Your Connection Info</h1>
+          <TestSection title="Your Connection Info">
             <div>IP: {maskIp(info.client_ip)}</div>
             <div>Location: {info.location || 'Unknown'}</div>
             <div>ASN: {info.asn || 'Unknown'}</div>
@@ -520,13 +520,14 @@ function App() {
             <div className="text-sm text-gray-400">
               Recorded at: {new Date(info.timestamp).toLocaleString()}
             </div>
-          </div>
+          </TestSection>
         ) : (
-          <div>No info available</div>
+          <TestSection title="Your Connection Info">
+            <div>No info available</div>
+          </TestSection>
         )}
 
-        <div className="space-y-2 bg-black bg-opacity-50 p-4 rounded">
-          <h2 className="text-xl mb-2 text-center">Recent Tests</h2>
+        <TestSection title="Recent Tests">
           {records.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
@@ -591,28 +592,25 @@ function App() {
               {recordsMessage || 'No test records found.'}
             </div>
           )}
-        </div>
+        </TestSection>
 
-        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
-          <h2 className="text-xl mb-2">Auto Ping Test</h2>
+        <TestSection title="Auto Ping Test">
           {pingOutput && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {pingOutput}
             </pre>
           )}
-        </div>
+        </TestSection>
 
-        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
-          <h2 className="text-xl mb-2">Traceroute</h2>
+        <TestSection title="Traceroute">
           {traceOutput && (
             <pre className="whitespace-pre-wrap text-left bg-black bg-opacity-50 p-2 rounded">
               {traceOutput}
             </pre>
           )}
-        </div>
+        </TestSection>
 
-        <div className="space-y-2 text-center bg-black bg-opacity-50 p-4 rounded">
-          <h2 className="text-xl mb-2">Speed Test</h2>
+        <TestSection title="Speed Test">
           <div className="space-y-2">
             <div className="flex justify-center space-x-2">
               <button
@@ -720,7 +718,7 @@ function App() {
                 : ''}
             </pre>
           )}
-        </div>
+        </TestSection>
       </div>
     </div>
   );
