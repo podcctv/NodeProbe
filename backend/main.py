@@ -260,7 +260,12 @@ def _get_client_ip(request: Request) -> str:
     # testing environments.  Guard against this to avoid ``AttributeError``
     # causing a 500 response.
     client = request.client
-    return client.host if client else ""
+    if not client:
+        return ""
+    # ``client`` may be a tuple or an object without a ``host`` attribute.
+    # Using ``getattr`` avoids raising ``AttributeError`` in those cases and
+    # ensures an empty string is returned when the host can't be determined.
+    return getattr(client, "host", "")
 
 
 @app.get("/admin/login", response_class=HTMLResponse, include_in_schema=False)
