@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import SpeedChart from './SpeedChart';
 import TestSection from './TestSection';
 
@@ -33,6 +33,18 @@ function maskIp(ip?: string | null) {
     return `${parts[0]}.***.***.${parts[3]}`;
   }
   return ip;
+}
+
+function getPingColor(ping: number) {
+  if (ping < 50) return 'text-green-400';
+  if (ping < 100) return 'text-yellow-400';
+  return 'text-red-400';
+}
+
+function getSpeedColor(speed: number) {
+  if (speed < 100) return 'text-red-400';
+  if (speed < 500) return 'text-yellow-400';
+  return 'text-green-400';
 }
 
 const RISKY = /[\u0300-\u036F]|\u3000|[\uFF00-\uFF65]/g;
@@ -84,6 +96,11 @@ function App() {
   const [records, setRecords] = useState<TestRecord[]>([]);
   const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
   const [pingOutput, setPingOutput] = useState<string | null>(null);
+  const [traceOutput, setTraceOutput] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<keyof TestRecord | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  const [showPingFull, setShowPingFull] = useState(false);
+  const [showTraceFull, setShowTraceFull] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -97,6 +114,29 @@ function App() {
       document.body.style.overflow = 'auto';
     }
   }, [loading]);
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortKey) {
+      arr.sort((a, b) => {
+        const av = (a[sortKey] as number | string | null) ?? 0;
+        const bv = (b[sortKey] as number | string | null) ?? 0;
+        if (av < bv) return sortAsc ? -1 : 1;
+        if (av > bv) return sortAsc ? 1 : -1;
+        return 0;
+      });
+    }
+    return arr;
+  }, [records, sortKey, sortAsc]);
+
+  const handleSort = (key: keyof TestRecord) => {
+    if (sortKey === key) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  };
 
   const loadRecords = async () => {
     try {
@@ -130,7 +170,6 @@ function App() {
   };
 
 
-  const [traceOutput, setTraceOutput] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState({
     transferred: 0,
     size: 0,
@@ -547,7 +586,9 @@ function App() {
             <div>ASN: {info.asn || 'Unknown'}</div>
             <div>ISP: {info.isp || 'Unknown'}</div>
             {typeof info.ping_ms === 'number' && (
-              <div>Ping: {info.ping_ms.toFixed(2)} ms</div>
+              <div className={getPingColor(info.ping_ms)}>
+                Ping: {info.ping_ms.toFixed(2)} ms
+              </div>
             )}
             <div className="text-sm text-gray-400">
               Recorded at: {new Date(info.timestamp).toLocaleString()}
@@ -560,53 +601,73 @@ function App() {
         )}
 
         <TestSection title="Recent Tests">
-          {records.length > 0 ? (
+          {sortedRecords.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
-                <thead className="bg-[rgb(0,50,0)]">
+                <thead className="bg-[rgb(0,50,0)] sticky top-0">
                   <tr>
-                    <th className="px-2 py-1 border border-green-700 font-bold">IP</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">Location</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">ASN</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">ISP</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">Ping</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">⬇️ 单线程</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">⬆️ 单线程</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">⬇️ 八线程</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">⬆️ 八线程</th>
-                    <th className="px-2 py-1 border border-green-700 font-bold">Recorded</th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('client_ip')}>
+                      IP
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('location')}>
+                      Location
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden md:table-cell" onClick={() => handleSort('asn')}>
+                      ASN
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden md:table-cell" onClick={() => handleSort('isp')}>
+                      ISP
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('ping_ms')}>
+                      Ping
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_dl_mbps')}>
+                      ⬇️ 单线程
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_ul_mbps')}>
+                      ⬆️ 单线程
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden sm:table-cell" onClick={() => handleSort('multi_dl_mbps')}>
+                      ⬇️ 八线程
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden sm:table-cell" onClick={() => handleSort('multi_ul_mbps')}>
+                      ⬆️ 八线程
+                    </th>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('timestamp')}>
+                      Recorded
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.slice(0, 10).map((r) => (
-                    <tr key={r.id} className="odd:bg-green-950 even:bg-green-900">
-                      <td className="px-2 py-1 border border-green-700">{maskIp(r.client_ip)}</td>
-                      <td className="px-2 py-1 border border-green-700">
+                  {sortedRecords.slice(0, 10).map((r) => (
+                    <tr key={r.id} className="odd:bg-green-950 even:bg-green-900 hover:bg-green-800">
+                      <td className="px-2 py-1 border border-green-700" title={r.client_ip || undefined}>{maskIp(r.client_ip)}</td>
+                      <td className="px-2 py-1 border border-green-700" title={r.location || undefined}>
                         {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
                       </td>
-                      <td className="px-2 py-1 border border-green-700">{r.asn || 'Unknown'}</td>
-                      <td className="px-2 py-1 border border-green-700">{r.isp || 'Unknown'}</td>
-                      <td className="px-2 py-1 border border-green-700">
+                      <td className="px-2 py-1 border border-green-700 hidden md:table-cell" title={r.asn || undefined}>{r.asn || 'Unknown'}</td>
+                      <td className="px-2 py-1 border border-green-700 hidden md:table-cell" title={r.isp || undefined}>{r.isp || 'Unknown'}</td>
+                      <td className={`px-2 py-1 border border-green-700 ${typeof r.ping_ms === 'number' ? getPingColor(r.ping_ms) : ''}`}>
                         {typeof r.ping_ms === 'number'
                           ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
                           : ''}
                       </td>
-                      <td className="px-2 py-1 border border-green-700">
+                      <td className={`px-2 py-1 border border-green-700 ${typeof r.single_dl_mbps === 'number' ? getSpeedColor(r.single_dl_mbps) : ''}`}>
                         {typeof r.single_dl_mbps === 'number'
                           ? `${r.single_dl_mbps.toFixed(2)}`
                           : ''}
                       </td>
-                      <td className="px-2 py-1 border border-green-700">
+                      <td className={`px-2 py-1 border border-green-700 ${typeof r.single_ul_mbps === 'number' ? getSpeedColor(r.single_ul_mbps) : ''}`}>
                         {typeof r.single_ul_mbps === 'number'
                           ? `${r.single_ul_mbps.toFixed(2)}`
                           : ''}
                       </td>
-                      <td className="px-2 py-1 border border-green-700">
+                      <td className={`px-2 py-1 border border-green-700 hidden sm:table-cell ${typeof r.multi_dl_mbps === 'number' ? getSpeedColor(r.multi_dl_mbps) : ''}`}>
                         {typeof r.multi_dl_mbps === 'number'
                           ? `${r.multi_dl_mbps.toFixed(2)}`
                           : ''}
                       </td>
-                      <td className="px-2 py-1 border border-green-700">
+                      <td className={`px-2 py-1 border border-green-700 hidden sm:table-cell ${typeof r.multi_ul_mbps === 'number' ? getSpeedColor(r.multi_ul_mbps) : ''}`}>
                         {typeof r.multi_ul_mbps === 'number'
                           ? `${r.multi_ul_mbps.toFixed(2)}`
                           : ''}
@@ -628,17 +689,41 @@ function App() {
 
         <TestSection title="Auto Ping Test">
           {pingOutput && (
-            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
-              {pingOutput}
-            </pre>
+            <div>
+              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
+                {showPingFull
+                  ? pingOutput
+                  : pingOutput.split('\n').slice(0, 5).join('\n')}
+              </pre>
+              {pingOutput.split('\n').length > 5 && (
+                <button
+                  className="mt-2 underline"
+                  onClick={() => setShowPingFull(!showPingFull)}
+                >
+                  {showPingFull ? 'Hide' : 'Show More'}
+                </button>
+              )}
+            </div>
           )}
         </TestSection>
 
         <TestSection title="Traceroute">
           {traceOutput && (
-            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
-              {traceOutput}
-            </pre>
+            <div>
+              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
+                {showTraceFull
+                  ? traceOutput
+                  : traceOutput.split('\n').slice(0, 5).join('\n')}
+              </pre>
+              {traceOutput.split('\n').length > 5 && (
+                <button
+                  className="mt-2 underline"
+                  onClick={() => setShowTraceFull(!showTraceFull)}
+                >
+                  {showTraceFull ? 'Hide' : 'Show More'}
+                </button>
+              )}
+            </div>
           )}
         </TestSection>
 
