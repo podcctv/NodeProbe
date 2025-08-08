@@ -47,6 +47,7 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
         ],
       },
       options: {
+        indexAxis: 'x',
         maintainAspectRatio: false,
         layout: { padding: { left: 8, right: 8, top: 8, bottom: 6 } },
         plugins: {
@@ -72,6 +73,7 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
         },
         scales: {
           x: {
+            type: 'category',
             grid: { display: false },
             ticks: { color: '#9fffcf', font: { size: 11 } },
           },
