@@ -89,8 +89,8 @@ function App() {
       html.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     } else {
-      html.style.overflow = '';
-      document.body.style.overflow = '';
+      html.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
     }
   }, [loading]);
 
