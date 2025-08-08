@@ -465,7 +465,7 @@ function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 flex items-center justify-center p-4 leading-[1.4]">
         <div
-          className="flex flex-col items-center space-y-4 p-5 border border-green-500/20 rounded-lg shadow-[0_0_40px_rgba(0,255,0,0.05)] max-w-[min(90vw,960px)] text-center"
+          className="flex flex-col items-center space-y-4 p-5 rounded-lg shadow-[0_0_40px_rgba(0,255,0,0.05)] max-w-[min(90vw,960px)] text-center"
           role="status"
           aria-live="polite"
           aria-busy="true"

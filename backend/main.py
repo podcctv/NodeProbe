@@ -585,6 +585,36 @@ def create_test(
     dl = data.pop("download_mbps", None)
     ul = data.pop("upload_mbps", None)
 
+    if skip_ping and dl is None and ul is None and not any(
+        data.get(k) is not None
+        for k in ("ping_ms", "ping_min_ms", "ping_max_ms", "mtr_result", "iperf_result")
+    ):
+        now = datetime.utcnow()
+        mapped = {
+            "client_ip": client_ip,
+            "user_agent": user_agent,
+            "location": data.get("location"),
+            "asn": data.get("asn"),
+            "isp": data.get("isp"),
+            "ping_ms": data.get("ping_ms"),
+            "ping_min_ms": data.get("ping_min_ms"),
+            "ping_max_ms": data.get("ping_max_ms"),
+            "single_dl_mbps": None,
+            "single_ul_mbps": None,
+            "multi_dl_mbps": None,
+            "multi_ul_mbps": None,
+            "mtr_result": data.get("mtr_result"),
+            "iperf_result": data.get("iperf_result"),
+            "test_target": data.get("test_target"),
+            "timestamp": now,
+            "time_hour": (
+                to_shanghai(now)
+                .replace(minute=0, second=0, microsecond=0)
+                .strftime("%I:00%p")
+            ),
+        }
+        return schemas.TestRecord(id=0, **mapped)
+
     ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
     existing = (
         db.query(models.TestRecord)
