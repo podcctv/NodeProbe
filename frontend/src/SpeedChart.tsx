@@ -41,6 +41,8 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
             borderColor,
             borderWidth: 1.5,
             borderRadius: 5,
+            barPercentage: 0.5,
+            categoryPercentage: 0.55,
           },
         ],
       },
@@ -78,9 +80,6 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
             grid: { color: 'rgba(26,255,122,.10)' },
             ticks: { color: '#8deabf', font: { size: 11 } },
           },
-        },
-        elements: {
-          bar: { barPercentage: 0.5, categoryPercentage: 0.55 },
         },
       },
     });
