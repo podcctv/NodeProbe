@@ -15,6 +15,8 @@
   line-height: 1.4;
   --container: 1280px;
   --gap: 16px;
+  --green: #0a3;
+  --green-soft: rgba(0, 255, 128, 0.12);
 }
 
 .app {
@@ -56,30 +58,117 @@
 
 .card {
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid #0a3;
+  border: 1px solid var(--green);
   border-radius: 8px;
 }
 .card__title {
   padding: 10px 12px;
-  border-bottom: 1px solid #0a3;
+  border-bottom: 1px solid var(--green);
   font-weight: bold;
 }
 .card__body {
   padding: 12px;
 }
 
-.speedtest {
-  --chart-h: 360px;
+.card--speed {
+  padding: 12px 12px 6px;
 }
-@media (min-width: 1440px) {
-  .speedtest {
-    --chart-h: 420px;
+
+.speed__header {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  grid-template-rows: auto auto auto;
+}
+
+.speed__progress {
+  font-size: 12px;
+  line-height: 1.2;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.speed__grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .speed__grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
-.speedtest__chart {
-  height: var(--chart-h);
+
+.panel {
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  padding: 8px;
+  position: relative;
+  background: rgba(0, 0, 0, 0.18);
+}
+.panel__title {
+  font-size: 12px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+.chart {
+  height: 340px;
   position: relative;
   overflow: hidden;
+}
+@media (min-width: 1440px) {
+  .chart {
+    height: 380px;
+  }
+}
+@media (max-width: 768px) {
+  .chart {
+    height: 260px;
+  }
+}
+.panel__peak {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  font-size: 12px;
+  color: #5f5;
+  opacity: 0.9;
+}
+
+.speed__legend {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 2px;
+}
+.legend {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.dot--single {
+  background: #2ff;
+  border: 1px solid #0aa;
+}
+.dot--multi {
+  background: #f3f;
+  border: 1px solid #a0a;
+}
+.sep {
+  opacity: 0.5;
+  margin: 0 8px;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
 .icon,
@@ -89,19 +178,13 @@
   line-height: 1;
   vertical-align: baseline;
 }
+
 .badge {
   font-size: 12px;
   padding: 2px 6px;
-  border: 1px solid #0a3;
+  border: 1px solid var(--green);
   border-radius: 6px;
   background: rgba(0, 128, 0, 0.12);
-}
-
-.speedtest__progress {
-  font-size: 12px;
-  line-height: 1.2;
-  display: grid;
-  gap: 4px;
 }
 
 .bars {
@@ -120,10 +203,6 @@
   width: 100%;
   position: relative;
 }
-.bar--upload {
-  background: #f3f;
-  border-color: #a0a;
-}
 .value {
   position: absolute;
   transform: translateY(-100%);
@@ -133,15 +212,15 @@
 
 .seg {
   display: inline-flex;
-  border: 1px solid #0a3;
+  border: 1px solid var(--green);
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(0, 128, 0, 0.06);
+  background: rgba(0, 128, 0, 0.08);
 }
 .seg__btn {
   padding: 6px 10px;
   font-size: 12px;
-  border-right: 1px solid #0a3;
+  border-right: 1px solid var(--green);
   cursor: pointer;
   background: transparent;
 }
@@ -149,13 +228,10 @@
   border-right: none;
 }
 .seg__btn.is-active {
-  background: rgba(0, 255, 128, 0.12);
+  background: var(--green-soft);
 }
 
 @media (max-width: 640px) {
-  .speedtest {
-    --chart-h: 260px;
-  }
   .seg__btn {
     padding: 4px 8px;
     font-size: 11px;

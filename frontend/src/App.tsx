@@ -191,6 +191,8 @@ function App() {
   const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
+  const [currentThreads, setCurrentThreads] = useState(1);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const downloadControllers = useRef<AbortController[]>([]);
   const uploadXhrs = useRef<XMLHttpRequest[]>([]);
@@ -529,18 +531,16 @@ function App() {
     }
   };
 
-  const stopSpeedtest = () => {
-    downloadControllers.current.forEach((c) => c.abort());
-    uploadXhrs.current.forEach((x) => x.abort());
-    downloadControllers.current = [];
-    uploadXhrs.current = [];
-    setSpeedRunning(false);
-    setCurrentDownloadSpeed(0);
-    setCurrentUploadSpeed(0);
-    setDownloadProgress({ transferred: 0, size: 0 });
-    setUploadProgress({ transferred: 0, size: 0 });
-    setDownloadSpeeds([]);
-    setUploadSpeeds([]);
+
+  const handleSpeedPreset = (
+    preset: string,
+    downloadSize: number,
+    uploadSize: number,
+    threads: number
+  ) => {
+    setActivePreset(preset);
+    setCurrentThreads(threads);
+    runSpeedtest(downloadSize, uploadSize, threads);
   };
   if (loading) {
     return (
@@ -728,88 +728,108 @@ function App() {
           )}
         </TestSection>
 
-        <TestSection title="Speed Test" className="card--wide speedtest">
-          <div className="seg">
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 1)}
-            >
-              单线程100M
-            </button>
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 1)}
-            >
-              单线程500M
-            </button>
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 1)}
-            >
-              单线程1G
-            </button>
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(100 * 1024 * 1024, 50 * 1024 * 1024, 8)}
-            >
-              八线程100M
-            </button>
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(500 * 1024 * 1024, 200 * 1024 * 1024, 8)}
-            >
-              八线程500M
-            </button>
-            <button
-              className="seg__btn"
-              disabled={speedRunning}
-              onClick={() => runSpeedtest(1024 * 1024 * 1024, 500 * 1024 * 1024, 8)}
-            >
-              八线程1G
-            </button>
-          </div>
-          <div className="flex justify-center mt-2">
-            <button
-              className="seg__btn bg-red-600 text-black"
-              disabled={!speedRunning}
-              onClick={stopSpeedtest}
-            >
-              STOP
-            </button>
-          </div>
-          <div className="speedtest__progress mt-4">
-            <span>Download Progress: {formatProgress(downloadProgress)}</span>
-            <span>
-              <span className="icon">⬇️</span> Download {currentDownloadSpeed.toFixed(2)} Mbps
-            </span>
-          </div>
-          <div className="speedtest__progress mt-2">
-            <span>Upload Progress: {formatProgress(uploadProgress)}</span>
-            <span>
-              <span className="icon">⬆️</span> Upload {currentUploadSpeed.toFixed(2)} Mbps
-            </span>
-          </div>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+        <section className="card card--speed card--wide">
+          <header className="speed__header">
+            <h2 className="card__title">Speed Test</h2>
+            <div className="seg">
+              <button
+                className={`seg__btn ${activePreset === 's100' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('s100', 100 * 1024 * 1024, 50 * 1024 * 1024, 1)
+                }
+              >
+                单线程100M
+              </button>
+              <button
+                className={`seg__btn ${activePreset === 's500' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('s500', 500 * 1024 * 1024, 200 * 1024 * 1024, 1)
+                }
+              >
+                单线程500M
+              </button>
+              <button
+                className={`seg__btn ${activePreset === 's1000' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('s1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
+                }
+              >
+                单线程1G
+              </button>
+              <button
+                className={`seg__btn ${activePreset === 'm100' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('m100', 100 * 1024 * 1024, 50 * 1024 * 1024, 8)
+                }
+              >
+                八线程100M
+              </button>
+              <button
+                className={`seg__btn ${activePreset === 'm500' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('m500', 500 * 1024 * 1024, 200 * 1024 * 1024, 8)
+                }
+              >
+                八线程500M
+              </button>
+              <button
+                className={`seg__btn ${activePreset === 'm1000' ? 'is-active' : ''}`}
+                disabled={speedRunning}
+                onClick={() =>
+                  handleSpeedPreset('m1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
+                }
+              >
+                八线程1G
+              </button>
+            </div>
+            <div className="speed__progress">
+              <div>
+                Download:
+                <span className="mono"> {formatProgress(downloadProgress)}</span>{' '}
+                <span className="icon">⬇</span>
+                <span className="mono"> {currentDownloadSpeed.toFixed(2)} Mbps</span>
+              </div>
+              <div>
+                Upload:
+                <span className="mono"> {formatProgress(uploadProgress)}</span>{' '}
+                <span className="icon">⬆</span>
+                <span className="mono"> {currentUploadSpeed.toFixed(2)} Mbps</span>
+              </div>
+            </div>
+          </header>
+
+          <div className="speed__grid">
             {downloadSpeeds.length > 0 && (
-              <SpeedChart
-                title="Download Speed"
-                speeds={downloadSpeeds}
-                color="#00ffff"
-              />
+              <div className="panel">
+                <div className="panel__title">Download</div>
+                <SpeedChart
+                  speeds={downloadSpeeds}
+                  color={currentThreads === 1 ? '#2ff' : '#f3f'}
+                />
+                <div className="panel__peak">
+                  {Math.max(...downloadSpeeds).toFixed(2)} Mbps
+                </div>
+              </div>
             )}
             {uploadSpeeds.length > 0 && (
-              <SpeedChart
-                title="Upload Speed"
-                speeds={uploadSpeeds}
-                color="#ff00ff"
-              />
+              <div className="panel">
+                <div className="panel__title">Upload</div>
+                <SpeedChart
+                  speeds={uploadSpeeds}
+                  color={currentThreads === 1 ? '#2ff' : '#f3f'}
+                />
+                <div className="panel__peak">
+                  {Math.max(...uploadSpeeds).toFixed(2)} Mbps
+                </div>
+              </div>
             )}
           </div>
+
           {speedResult && (
             <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded mt-4">
               {speedResult.single
@@ -820,7 +840,15 @@ function App() {
                 : ''}
             </pre>
           )}
-        </TestSection>
+
+          <footer className="speed__legend">
+            <div className="legend">
+              <span className="dot dot--single" /> Single Thread
+              <span className="sep">·</span>
+              <span className="dot dot--multi" /> Multi Thread (8)
+            </div>
+          </footer>
+        </section>
       </div>
     </div>
   </div>
