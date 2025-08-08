@@ -156,9 +156,12 @@ function App() {
   const downloadControllers = useRef<AbortController[]>([]);
   const uploadXhrs = useRef<XMLHttpRequest[]>([]);
 
-    useEffect(() => {
-      runInitialTests();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasRunInitial = useRef(false);
+  useEffect(() => {
+    if (hasRunInitial.current) return;
+    hasRunInitial.current = true;
+    runInitialTests();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const runInitialTests = async () => {
