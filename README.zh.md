@@ -18,6 +18,30 @@
 - 一键复制测试结果为包含汇总表格的 Markdown
 - 通过 Docker Compose 或预构建镜像一键部署
 
+## 技术栈
+
+### 后端
+
+- Python 3
+- FastAPI
+- Uvicorn
+- SQLAlchemy 与 Pydantic
+- Jinja2 模板
+- SQLite
+
+### 前端
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Chart.js
+
+### 部署
+
+- Docker
+- Docker Compose
+
 ## 开发环境
 
 - **后端**：位于 `backend/` 的 FastAPI + SQLite
