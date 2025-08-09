@@ -9,6 +9,7 @@
 - 管理员注册、登录与测试管理界面
 - 使用 SQLite 持久化存储测试记录
 - 按浏览器与 IP 分组的测试统计并按小时聚合
+- 一键复制测试结果为包含汇总表格的 Markdown
 - 通过 Docker Compose 或预构建镜像一键部署
 
 ## 开发环境
@@ -88,5 +89,5 @@ docker run -d --name nodeprobe -p 8380:8380 \
 
 ## 更新日志
 
-查看 [CHANGELOG.zh.md](CHANGELOG.zh.md) 了解最新功能与修复。
+查看 [CHANGELOG.zh.md](CHANGELOG.zh.md) 或 [英文版](CHANGELOG.md) 了解最新功能与修复。
 

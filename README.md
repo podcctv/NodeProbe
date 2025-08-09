@@ -10,6 +10,7 @@
 - Admin registration, login and test management interface
 - Persistent SQLite storage for test records
 - Grouped test statistics by browser and IP with hourly aggregation
+- Copy probe results as a Markdown summary table
 - One‑click deployment via Docker Compose or a prebuilt image
 
 ## Development
@@ -89,5 +90,5 @@ Data will be saved to `/opt/NodeProbe/data/` by default.
 
 ## Changelog
 
-For a list of notable changes, see [CHANGELOG](CHANGELOG.md).
+For a list of notable changes, see [CHANGELOG](CHANGELOG.md) or the [Chinese version](CHANGELOG.zh.md).
 
