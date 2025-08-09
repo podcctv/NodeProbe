@@ -40,12 +40,17 @@
 }
 @media (min-width: 1920px) {
   :root {
-    --container: 1520px;
+    --container: 1600px;
   }
 }
 @media (min-width: 2560px) {
   :root {
-    --container: 1680px;
+    --container: 1800px;
+  }
+}
+@media (min-width: 3840px) {
+  :root {
+    --container: 2200px;
   }
 }
 

@@ -703,8 +703,8 @@ function App() {
 
             <TestSection title="Recent Tests">
               {sortedRecords.length > 0 ? (
-                <div className="max-h-60 overflow-auto rounded border border-emerald-900/40">
-                  <table className="min-w-full text-xs leading-6 text-left">
+                <div className="max-h-60 lg:max-h-80 overflow-y-auto overflow-x-auto rounded border border-emerald-900/40">
+                  <table className="w-full table-fixed text-xs leading-6 text-left">
                     <thead className="sticky top-0 bg-emerald-900/20 backdrop-blur">
                       <tr className="text-emerald-300">
                         <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('client_ip')}>IP</th>
@@ -910,11 +910,11 @@ function App() {
 
                 <div className="flex justify-center text-xs text-emerald-300/80 gap-2">
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-[#27E8E5] border border-[#16c3bf]" />
+                    <span className="w-3 h-3 flex-none rounded-sm bg-[#27E8E5] border border-[#16c3bf]" />
                     Single Thread
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-[#E53AD6] border border-[#b824a9]" />
+                    <span className="w-3 h-3 flex-none rounded-sm bg-[#E53AD6] border border-[#b824a9]" />
                     Multi Thread (8)
                   </span>
                 </div>
