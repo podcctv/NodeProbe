@@ -191,13 +191,15 @@ function App() {
     transferred: 0,
     size: 0,
   });
-  const [speedResult, setSpeedResult] = useState<
-    | {
-        single?: { down: number; up: number };
-        multi?: { down: number; up: number };
-      }
-    | null
-  >(null);
+  type SpeedEntry = { down: number; up: number };
+  interface SpeedResult {
+    single: SpeedEntry | null;
+    multi: SpeedEntry | null;
+  }
+  const [speedResult, setSpeedResult] = useState<SpeedResult>({
+    single: null,
+    multi: null,
+  });
   const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
   const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
   const [currentDownloadSpeed, setCurrentDownloadSpeed] = useState(0);
@@ -524,7 +526,8 @@ function App() {
     threads: number
   ) => {
     setSpeedRunning(true);
-    setSpeedResult(null);
+    const key = threads === 1 ? 'single' : 'multi';
+    setSpeedResult((prev) => ({ ...prev, [key]: null }));
     downloadControllers.current = [];
     uploadXhrs.current = [];
 
@@ -536,14 +539,14 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           test_target: 'speedtest',
-          speedtest_type: threads === 1 ? 'single' : 'multi',
+          speedtest_type: key,
           download_mbps: down,
           upload_mbps: up,
         }),
       });
       setSpeedResult((prev) => ({
-        ...(prev || {}),
-        [threads === 1 ? 'single' : 'multi']: { down, up },
+        ...prev,
+        [key]: { down, up },
       }));
       loadRecords()
         .then((recs) => {
@@ -879,16 +882,14 @@ function App() {
             )}
           </div>
 
-          {speedResult && (
-            <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded mt-4">
-              {speedResult.single
-                ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
-                : ''}
-              {speedResult.multi
-                ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
-                : ''}
-            </pre>
-          )}
+          <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded mt-4">
+            {speedResult.single
+              ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
+              : 'Single Thread - ⬇️ - ⬆️ -\n'}
+            {speedResult.multi
+              ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
+              : 'Multi Thread (8) - ⬇️ - ⬆️ -'}
+          </pre>
 
           <footer className="speed__legend">
             <div className="legend">
