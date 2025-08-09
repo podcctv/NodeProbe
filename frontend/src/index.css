@@ -13,6 +13,11 @@
 :root {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   line-height: 1.4;
+  --bg: #071207;
+  --panel: 24 58 24;
+  --text: #d9f7d9;
+  --muted: #a1d7a1;
+  --accent: #21c764;
   --container: 1280px;
   --gap: 16px;
   --green: #1aff7a;

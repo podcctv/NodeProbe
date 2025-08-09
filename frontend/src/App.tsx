@@ -663,298 +663,263 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4 leading-[1.4]">
-      <div className="app space-y-8">
-      <AsciiLogo />
-      <div className="text-center">
-        <button
-          className="px-4 py-2 bg-green-800 text-green-100 rounded"
-          onClick={copyMarkdown}
-        >
-          Copy Markdown
-        </button>
-      </div>
-      <div className="dashboard">
-          {info ? (
-            <TestSection title="Your Connection Info" className="card--info">
-              <div>IP: {maskIp(info.client_ip)}</div>
-              <div>Location: {info.location || 'Unknown'}</div>
-              <div>ASN: {info.asn || 'Unknown'}</div>
-              <div>ISP: {info.isp || 'Unknown'}</div>
-              {typeof info.ping_ms === 'number' && (
-                <div className={getPingColor(info.ping_ms)}>
-                  Ping: {info.ping_ms.toFixed(2)} ms
+    <div className="min-h-screen bg-gradient-to-b from-[#0a1a0a] to-[#021505] text-[var(--text)]">
+      <main className="mx-auto container max-w-screen-xl px-4 lg:px-6 space-y-6">
+        <AsciiLogo />
+        <div className="text-center">
+          <button
+            className="px-4 py-2 border border-emerald-700 rounded bg-emerald-900/20 hover:bg-emerald-900/30"
+            onClick={copyMarkdown}
+          >
+            Copy Markdown
+          </button>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-1">
+            {info ? (
+              <TestSection title="Your Connection Info">
+                <div className="font-mono text-sm">IP: {maskIp(info.client_ip)}</div>
+                <div>Location: {info.location || 'Unknown'}</div>
+                <div>ASN: {info.asn || 'Unknown'}</div>
+                <div>ISP: {info.isp || 'Unknown'}</div>
+                {typeof info.ping_ms === 'number' && (
+                  <div className={`font-mono text-sm ${getPingColor(info.ping_ms)}`}>
+                    Ping: {info.ping_ms.toFixed(2)} ms
+                  </div>
+                )}
+                <div className="text-xs text-[var(--muted)]">
+                  Recorded at: {new Date(info.timestamp).toLocaleString()}
+                </div>
+              </TestSection>
+            ) : (
+              <TestSection title="Your Connection Info">
+                <div>No info available</div>
+              </TestSection>
+            )}
+
+            <TestSection title="Recent Tests">
+              {sortedRecords.length > 0 ? (
+                <div className="max-h-60 overflow-auto">
+                  <table className="min-w-full text-xs leading-6 text-left">
+                    <thead className="sticky top-0 bg-emerald-900/20 backdrop-blur">
+                      <tr className="text-emerald-300">
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('client_ip')}>IP</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('location')}>Location</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('asn')}>ASN</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('isp')}>ISP</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('ping_ms')}>Ping (min/avg/max)</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('single_dl_mbps')}>⬇️ 单线程</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('single_ul_mbps')}>⬆️ 单线程</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('multi_dl_mbps')}>⬇️ 八线程</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('multi_ul_mbps')}>⬆️ 八线程</th>
+                        <th className="px-2 py-1 cursor-pointer" onClick={() => handleSort('timestamp')}>Recorded</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRecords.slice(0, 10).map((r) => (
+                        <tr key={r.id} className="odd:bg-emerald-900/5">
+                          <td className="px-2 py-1 font-mono truncate max-w-[8rem]" title={r.client_ip || undefined}>{maskIp(r.client_ip)}</td>
+                          <td className="px-2 py-1 truncate max-w-[8rem]" title={r.location || undefined}>
+                            {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
+                          </td>
+                          <td className="px-2 py-1 truncate max-w-[6rem]" title={r.asn || undefined}>{r.asn || 'Unknown'}</td>
+                          <td className="px-2 py-1 truncate max-w-[8rem]" title={r.isp || undefined}>{r.isp || 'Unknown'}</td>
+                          <td className={`px-2 py-1 font-mono ${typeof r.ping_ms === 'number' ? getPingColor(r.ping_ms) : ''}`}>
+                            {typeof r.ping_ms === 'number'
+                              ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
+                              : ''}
+                          </td>
+                          <td className={`px-2 py-1 ${typeof r.single_dl_mbps === 'number' ? getSpeedColor(r.single_dl_mbps) : ''}`}>
+                            {typeof r.single_dl_mbps === 'number' ? r.single_dl_mbps.toFixed(2) : ''}
+                          </td>
+                          <td className={`px-2 py-1 ${typeof r.single_ul_mbps === 'number' ? getSpeedColor(r.single_ul_mbps) : ''}`}>
+                            {typeof r.single_ul_mbps === 'number' ? r.single_ul_mbps.toFixed(2) : ''}
+                          </td>
+                          <td className={`px-2 py-1 ${typeof r.multi_dl_mbps === 'number' ? getSpeedColor(r.multi_dl_mbps) : ''}`}>
+                            {typeof r.multi_dl_mbps === 'number' ? r.multi_dl_mbps.toFixed(2) : ''}
+                          </td>
+                          <td className={`px-2 py-1 ${typeof r.multi_ul_mbps === 'number' ? getSpeedColor(r.multi_ul_mbps) : ''}`}>
+                            {typeof r.multi_ul_mbps === 'number' ? r.multi_ul_mbps.toFixed(2) : ''}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">{new Date(r.timestamp).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-sm text-center text-[var(--muted)]">
+                  {recordsMessage || 'No test records found.'}
                 </div>
               )}
-              <div className="text-sm text-gray-400">
-                Recorded at: {new Date(info.timestamp).toLocaleString()}
-              </div>
             </TestSection>
-          ) : (
-            <TestSection title="Your Connection Info" className="card--info">
-              <div>No info available</div>
-            </TestSection>
-          )}
-
-          <TestSection title="Recent Tests" className="card--recent">
-          {sortedRecords.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left border border-green-600 border-collapse">
-                <thead className="bg-[rgb(0,50,0)] sticky top-0">
-                  <tr>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('client_ip')}>
-                      IP
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('location')}>
-                      Location
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('asn')}>
-                      ASN
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('isp')}>
-                      ISP
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('ping_ms')}>
-                      Ping (min/avg/max)
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_dl_mbps')}>
-                      ⬇️ 单线程
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_ul_mbps')}>
-                      ⬆️ 单线程
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('multi_dl_mbps')}>
-                      ⬇️ 八线程
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('multi_ul_mbps')}>
-                      ⬆️ 八线程
-                    </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('timestamp')}>
-                      Recorded
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedRecords.slice(0, 10).map((r) => (
-                    <tr key={r.id} className="odd:bg-green-950 even:bg-green-900 hover:bg-green-800">
-                      <td className="px-2 py-1 border border-green-700" title={r.client_ip || undefined}>{maskIp(r.client_ip)}</td>
-                      <td className="px-2 py-1 border border-green-700" title={r.location || undefined}>
-                        {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
-                      </td>
-                      <td className="px-2 py-1 border border-green-700" title={r.asn || undefined}>{r.asn || 'Unknown'}</td>
-                      <td className="px-2 py-1 border border-green-700" title={r.isp || undefined}>{r.isp || 'Unknown'}</td>
-                      <td className={`px-2 py-1 border border-green-700 ${typeof r.ping_ms === 'number' ? getPingColor(r.ping_ms) : ''}`}>
-                        {typeof r.ping_ms === 'number'
-                          ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
-                          : ''}
-                      </td>
-                      <td className={`px-2 py-1 border border-green-700 ${typeof r.single_dl_mbps === 'number' ? getSpeedColor(r.single_dl_mbps) : ''}`}>
-                        {typeof r.single_dl_mbps === 'number'
-                          ? `${r.single_dl_mbps.toFixed(2)}`
-                          : ''}
-                      </td>
-                      <td className={`px-2 py-1 border border-green-700 ${typeof r.single_ul_mbps === 'number' ? getSpeedColor(r.single_ul_mbps) : ''}`}>
-                        {typeof r.single_ul_mbps === 'number'
-                          ? `${r.single_ul_mbps.toFixed(2)}`
-                          : ''}
-                      </td>
-                      <td className={`px-2 py-1 border border-green-700 ${typeof r.multi_dl_mbps === 'number' ? getSpeedColor(r.multi_dl_mbps) : ''}`}>
-                        {typeof r.multi_dl_mbps === 'number'
-                          ? `${r.multi_dl_mbps.toFixed(2)}`
-                          : ''}
-                      </td>
-                      <td className={`px-2 py-1 border border-green-700 ${typeof r.multi_ul_mbps === 'number' ? getSpeedColor(r.multi_ul_mbps) : ''}`}>
-                        {typeof r.multi_ul_mbps === 'number'
-                          ? `${r.multi_ul_mbps.toFixed(2)}`
-                          : ''}
-                      </td>
-                      <td className="px-2 py-1 border border-green-700">
-                        {new Date(r.timestamp).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-sm text-center text-gray-400">
-              {recordsMessage || 'No test records found.'}
-            </div>
-          )}
-        </TestSection>
-
-        <TestSection title="Auto Ping Test" className="card--ping">
-          {pingOutput && (
-            <div>
-              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
-                {showPingFull
-                  ? pingOutput
-                  : pingOutput.split('\n').slice(0, 5).join('\n')}
-              </pre>
-              {pingOutput.split('\n').length > 5 && (
-                <button
-                  className="mt-2 underline"
-                  onClick={() => setShowPingFull(!showPingFull)}
-                >
-                  {showPingFull ? 'Hide' : 'Show More'}
-                </button>
-              )}
-            </div>
-          )}
-        </TestSection>
-
-        <TestSection title="Traceroute" className="card--trace">
-          {traceOutput && (
-            <div>
-              <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded">
-                {showTraceFull
-                  ? traceOutput
-                  : traceOutput.split('\n').slice(0, 5).join('\n')}
-              </pre>
-              {traceOutput.split('\n').length > 5 && (
-                <button
-                  className="mt-2 underline"
-                  onClick={() => setShowTraceFull(!showTraceFull)}
-                >
-                  {showTraceFull ? 'Hide' : 'Show More'}
-                </button>
-              )}
-            </div>
-          )}
-        </TestSection>
-
-        <section className="card card--speed">
-          <header className="speed__header">
-            <h2 className="card__title">Speed Test</h2>
-            <div className="seg">
-              <button
-                className={`seg__btn ${activePreset === 's100' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('s100', 100 * 1024 * 1024, 50 * 1024 * 1024, 1)
-                }
-              >
-                单线程100M
-              </button>
-              <button
-                className={`seg__btn ${activePreset === 's500' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('s500', 500 * 1024 * 1024, 200 * 1024 * 1024, 1)
-                }
-              >
-                单线程500M
-              </button>
-              <button
-                className={`seg__btn ${activePreset === 's1000' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('s1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 1)
-                }
-              >
-                单线程1G
-              </button>
-              <button
-                className={`seg__btn ${activePreset === 'm100' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('m100', 100 * 1024 * 1024, 50 * 1024 * 1024, 8)
-                }
-              >
-                八线程100M
-              </button>
-              <button
-                className={`seg__btn ${activePreset === 'm500' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('m500', 500 * 1024 * 1024, 200 * 1024 * 1024, 8)
-                }
-              >
-                八线程500M
-              </button>
-              <button
-                className={`seg__btn ${activePreset === 'm1000' ? 'is-active' : ''}`}
-                disabled={speedRunning}
-                onClick={() =>
-                  handleSpeedPreset('m1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 8)
-                }
-              >
-                八线程1G
-              </button>
-            </div>
-            <div className="speed__progress">
-              <div>
-                ⬇️ Download:
-                <span className="mono"> {formatProgress(downloadProgress)}</span>{' '}
-                <span className="mono"> {currentDownloadSpeed.toFixed(2)} Mbps</span>
-              </div>
-              <div>
-                ⬆️ Upload:
-                <span className="mono"> {formatProgress(uploadProgress)}</span>{' '}
-                <span className="mono"> {currentUploadSpeed.toFixed(2)} Mbps</span>
-              </div>
-            </div>
-          </header>
-
-          <div className="speed__grid">
-            {singleDownloadSpeeds.length > 0 && (
-              <div className="panel">
-                <div className="panel__title">Download (Single)</div>
-                <SpeedChart speeds={singleDownloadSpeeds} multi={false} />
-                <div className="panel__peak">
-                  {Math.max(...singleDownloadSpeeds).toFixed(2)} Mbps
-                </div>
-              </div>
-            )}
-            {singleUploadSpeeds.length > 0 && (
-              <div className="panel">
-                <div className="panel__title">Upload (Single)</div>
-                <SpeedChart speeds={singleUploadSpeeds} multi={false} />
-                <div className="panel__peak">
-                  {Math.max(...singleUploadSpeeds).toFixed(2)} Mbps
-                </div>
-              </div>
-            )}
-            {multiDownloadSpeeds.length > 0 && (
-              <div className="panel">
-                <div className="panel__title">Download (Multi)</div>
-                <SpeedChart speeds={multiDownloadSpeeds} multi />
-                <div className="panel__peak">
-                  {Math.max(...multiDownloadSpeeds).toFixed(2)} Mbps
-                </div>
-              </div>
-            )}
-            {multiUploadSpeeds.length > 0 && (
-              <div className="panel">
-                <div className="panel__title">Upload (Multi)</div>
-                <SpeedChart speeds={multiUploadSpeeds} multi />
-                <div className="panel__peak">
-                  {Math.max(...multiUploadSpeeds).toFixed(2)} Mbps
-                </div>
-              </div>
-            )}
           </div>
 
-          <pre className="whitespace-pre-wrap text-left font-mono bg-[rgb(0,40,0)] bg-opacity-70 p-4 rounded mt-4">
-            {speedResult.single
-              ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
-              : 'Single Thread - ⬇️ - ⬆️ -\n'}
-            {speedResult.multi
-              ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
-              : 'Multi Thread (8) - ⬇️ - ⬆️ -'}
-          </pre>
+          <div className="space-y-6 lg:col-span-2">
+            <TestSection title="Auto Ping Test">
+              {pingOutput && (
+                <div>
+                  <pre className="whitespace-pre-wrap text-left font-mono bg-emerald-950/50 p-4 rounded">
+                    {showPingFull
+                      ? pingOutput
+                      : pingOutput.split('\n').slice(0, 5).join('\n')}
+                  </pre>
+                  {pingOutput.split('\n').length > 5 && (
+                    <button className="mt-2 underline" onClick={() => setShowPingFull(!showPingFull)}>
+                      {showPingFull ? 'Hide' : 'Show More'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </TestSection>
 
-          <footer className="speed__legend">
-            <div className="legend">
-              <span className="dot dot--single" /> Single Thread
-              <span className="sep">·</span>
-              <span className="dot dot--multi" /> Multi Thread (8)
-            </div>
-          </footer>
-        </section>
-      </div>
+            <TestSection title="Traceroute">
+              {traceOutput && (
+                <div>
+                  <pre className="whitespace-pre-wrap text-left font-mono bg-emerald-950/50 p-4 rounded">
+                    {showTraceFull
+                      ? traceOutput
+                      : traceOutput.split('\n').slice(0, 5).join('\n')}
+                  </pre>
+                  {traceOutput.split('\n').length > 5 && (
+                    <button className="mt-2 underline" onClick={() => setShowTraceFull(!showTraceFull)}>
+                      {showTraceFull ? 'Hide' : 'Show More'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </TestSection>
+
+            <TestSection title="Speed Test">
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 's100' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('s100', 100 * 1024 * 1024, 50 * 1024 * 1024, 1)}
+                  >
+                    单线程100M
+                  </button>
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 's500' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('s500', 500 * 1024 * 1024, 200 * 1024 * 1024, 1)}
+                  >
+                    单线程500M
+                  </button>
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 's1000' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('s1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 1)}
+                  >
+                    单线程1G
+                  </button>
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 'm100' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('m100', 100 * 1024 * 1024, 50 * 1024 * 1024, 8)}
+                  >
+                    八线程100M
+                  </button>
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 'm500' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('m500', 500 * 1024 * 1024, 200 * 1024 * 1024, 8)}
+                  >
+                    八线程500M
+                  </button>
+                  <button
+                    className="px-2 py-1 text-sm rounded border border-emerald-900/40 data-[active=true]:bg-emerald-500/20 data-[active=true]:text-emerald-300"
+                    data-active={activePreset === 'm1000' || undefined}
+                    disabled={speedRunning}
+                    onClick={() => handleSpeedPreset('m1000', 1024 * 1024 * 1024, 500 * 1024 * 1024, 8)}
+                  >
+                    八线程1G
+                  </button>
+                </div>
+
+                <div className="text-xs grid gap-1">
+                  <div>
+                    ⬇️ Download:
+                    <span className="font-mono"> {formatProgress(downloadProgress)}</span>{' '}
+                    <span className="font-mono"> {currentDownloadSpeed.toFixed(2)} Mbps</span>
+                  </div>
+                  <div>
+                    ⬆️ Upload:
+                    <span className="font-mono"> {formatProgress(uploadProgress)}</span>{' '}
+                    <span className="font-mono"> {currentUploadSpeed.toFixed(2)} Mbps</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {singleDownloadSpeeds.length > 0 && (
+                    <div className="relative h-64 md:h-72">
+                      <div className="mb-1 text-xs text-emerald-300">Download (Single)</div>
+                      <SpeedChart speeds={singleDownloadSpeeds} multi={false} />
+                      <div className="absolute right-2 top-1 text-xs text-emerald-300">
+                        {Math.max(...singleDownloadSpeeds).toFixed(2)} Mbps
+                      </div>
+                    </div>
+                  )}
+                  {singleUploadSpeeds.length > 0 && (
+                    <div className="relative h-64 md:h-72">
+                      <div className="mb-1 text-xs text-emerald-300">Upload (Single)</div>
+                      <SpeedChart speeds={singleUploadSpeeds} multi={false} />
+                      <div className="absolute right-2 top-1 text-xs text-emerald-300">
+                        {Math.max(...singleUploadSpeeds).toFixed(2)} Mbps
+                      </div>
+                    </div>
+                  )}
+                  {multiDownloadSpeeds.length > 0 && (
+                    <div className="relative h-64 md:h-72">
+                      <div className="mb-1 text-xs text-emerald-300">Download (Multi)</div>
+                      <SpeedChart speeds={multiDownloadSpeeds} multi />
+                      <div className="absolute right-2 top-1 text-xs text-emerald-300">
+                        {Math.max(...multiDownloadSpeeds).toFixed(2)} Mbps
+                      </div>
+                    </div>
+                  )}
+                  {multiUploadSpeeds.length > 0 && (
+                    <div className="relative h-64 md:h-72">
+                      <div className="mb-1 text-xs text-emerald-300">Upload (Multi)</div>
+                      <SpeedChart speeds={multiUploadSpeeds} multi />
+                      <div className="absolute right-2 top-1 text-xs text-emerald-300">
+                        {Math.max(...multiUploadSpeeds).toFixed(2)} Mbps
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <pre className="whitespace-pre-wrap text-left font-mono bg-emerald-950/50 p-4 rounded">
+                  {speedResult.single
+                    ? `Single Thread - ⬇️ ${speedResult.single.down.toFixed(2)} ⬆️ ${speedResult.single.up.toFixed(2)}\n`
+                    : 'Single Thread - ⬇️ - ⬆️ -\n'}
+                  {speedResult.multi
+                    ? `Multi Thread (8) - ⬇️ ${speedResult.multi.down.toFixed(2)} ⬆️ ${speedResult.multi.up.toFixed(2)}`
+                    : 'Multi Thread (8) - ⬇️ - ⬆️ -'}
+                </pre>
+
+                <div className="flex justify-center text-xs text-emerald-300/80 gap-2">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm bg-[#27E8E5] border border-[#16c3bf]" />
+                    Single Thread
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm bg-[#E53AD6] border border-[#b824a9]" />
+                    Multi Thread (8)
+                  </span>
+                </div>
+              </div>
+            </TestSection>
+          </div>
+        </div>
+      </main>
     </div>
-  </div>
   );
 }
 
