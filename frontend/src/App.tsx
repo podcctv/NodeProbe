@@ -218,9 +218,15 @@ function App() {
     return `#VPS.TOWN NODE Probe\n\n##Your Connection Info\nIP: ${maskedIp}\nLocation: ${info?.location || 'Unknown'}\nASN: ${info?.asn || 'Unknown'}\nISP: ${info?.isp || 'Unknown'}\n\n##Auto Ping Test\n\n\u0060\u0060\u0060\n${pingText}\n\u0060\u0060\u0060\n\n##Traceroute\n\n\u0060\u0060\u0060\n${traceText}\n\u0060\u0060\u0060\n\n##Speed TEST\n\n|Type|Download (Mbps)|Upload (Mbps)|\n|---|---|---|\n|Single Thread|${singleDown}|${singleUp}|\n|Eight Threads|${multiDown}|${multiUp}|\n`;
   };
 
-  const copyMarkdown = () => {
-    const md = generateMarkdown();
-    navigator.clipboard.writeText(md);
+  const copyMarkdown = async () => {
+    try {
+      const md = generateMarkdown();
+      await navigator.clipboard.writeText(md);
+      alert('Markdown copied to clipboard');
+    } catch (err) {
+      console.error('Copy failed', err);
+      alert('Copy failed');
+    }
   };
 
   const downloadControllers = useRef<AbortController[]>([]);
@@ -381,7 +387,10 @@ function App() {
         }
       }
       const end = performance.now();
-      return (size * 8) / (end - start) / 1000;
+      const speed = (size * 8) / (end - start) / 1000;
+      setCurrentDownloadSpeed(speed);
+      setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+      return speed;
     }
 
     const chunkSize = Math.floor(size / threads);
@@ -419,7 +428,10 @@ function App() {
     }
     await Promise.all(tasks);
     const end = performance.now();
-    return (size * 8) / (end - start) / 1000;
+    const speed = (size * 8) / (end - start) / 1000;
+    setCurrentDownloadSpeed(speed);
+    setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+    return speed;
   }
 
   function uploadWithProgress(size: number, threads = 1) {
@@ -451,7 +463,10 @@ function App() {
         };
         xhr.onload = () => {
           const end = performance.now();
-          resolve((size * 8) / (end - start) / 1000);
+          const speed = (size * 8) / (end - start) / 1000;
+          setCurrentUploadSpeed(speed);
+          setUploadSpeeds((s) => [...s.slice(-99), speed]);
+          resolve(speed);
         };
         xhr.onerror = () => reject(new Error('Upload failed'));
         xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
@@ -490,7 +505,10 @@ function App() {
           completed++;
           if (completed === threads) {
             const end = performance.now();
-            resolve((size * 8) / (end - start) / 1000);
+            const speed = (size * 8) / (end - start) / 1000;
+            setCurrentUploadSpeed(speed);
+            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            resolve(speed);
           }
         };
         xhr.onerror = () => reject(new Error('Upload failed'));
@@ -555,8 +573,6 @@ function App() {
       }
     } finally {
       setSpeedRunning(false);
-      setCurrentDownloadSpeed(0);
-      setCurrentUploadSpeed(0);
     }
   };
 
@@ -589,14 +605,12 @@ function App() {
           )}
           {downloadProgress.size > 0 && (
             <div className="text-sm">
-              下载进度：{formatProgress(downloadProgress)} ⬇️ Download{' '}
-              {currentDownloadSpeed.toFixed(2)} Mbps
+              ⬇️ Download: {formatProgress(downloadProgress)} {currentDownloadSpeed.toFixed(2)} Mbps
             </div>
           )}
           {uploadProgress.size > 0 && (
             <div className="text-sm">
-              上传进度：{formatProgress(uploadProgress)} ⬆️ Upload{' '}
-              {currentUploadSpeed.toFixed(2)} Mbps
+              ⬆️ Upload: {formatProgress(uploadProgress)} {currentUploadSpeed.toFixed(2)} Mbps
             </div>
           )}
         </div>
@@ -826,15 +840,13 @@ function App() {
             </div>
             <div className="speed__progress">
               <div>
-                Download:
+                ⬇️ Download:
                 <span className="mono"> {formatProgress(downloadProgress)}</span>{' '}
-                <i className="icon-dl" aria-hidden="true"></i>
                 <span className="mono"> {currentDownloadSpeed.toFixed(2)} Mbps</span>
               </div>
               <div>
-                Upload:
+                ⬆️ Upload:
                 <span className="mono"> {formatProgress(uploadProgress)}</span>{' '}
-                <i className="icon-ul" aria-hidden="true"></i>
                 <span className="mono"> {currentUploadSpeed.toFixed(2)} Mbps</span>
               </div>
             </div>
