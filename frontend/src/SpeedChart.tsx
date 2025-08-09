@@ -42,7 +42,7 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
             font: { size: 10, weight: 600 },
             formatter: (value: number, context) => {
               const y = context.chart.scales.y.getPixelForValue(value);
-              return y < 20 ? '' : value;
+              return y < 20 ? '' : value.toFixed(2);
             },
           },
         },
