@@ -247,12 +247,14 @@ def _ping(host: str) -> float | None:
             ["ping", "-c", "1", host],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=10,
         )
         if result.returncode == 0:
             match = re.search(r"time[=<]([0-9.]+) ms", result.stdout)
             if match:
                 return float(match.group(1))
+    except subprocess.TimeoutExpired:
+        return None
     except Exception:
         pass
     return None
@@ -843,7 +845,7 @@ def run_ping(host: str, count: int = 4):
             ["ping", "-c", str(count), host],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=20,
         )
         if result.returncode == 0:
             data = {"output": result.stdout}
@@ -863,6 +865,8 @@ def run_ping(host: str, count: int = 4):
         return {"error": result.stderr or "Ping failed"}
     except FileNotFoundError:
         return {"error": "ping command not found"}
+    except subprocess.TimeoutExpired:
+        return {"error": "Ping timed out"}
     except Exception as exc:
         return {"error": str(exc)}
 
@@ -875,7 +879,7 @@ def run_traceroute(host: str, download: bool = False):
             ["traceroute", host],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=60,
         )
         if result.returncode != 0:
             return {"error": result.stderr or "Traceroute failed"}
@@ -891,6 +895,8 @@ def run_traceroute(host: str, download: bool = False):
         return {"output": result.stdout}
     except FileNotFoundError:
         return {"error": "traceroute command not found"}
+    except subprocess.TimeoutExpired as exc:
+        return {"error": "Traceroute timed out", "output": exc.output or ""}
     except Exception as exc:
         return {"error": str(exc)}
 
