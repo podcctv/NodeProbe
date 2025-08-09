@@ -14,6 +14,14 @@ All notable changes to this project will be documented in this file.
 - Enhanced speed test charts, layout and colour‑coded progress bar
 - Improved loading messages and interface responsiveness
 - Grouped test operations by browser and IP with hourly aggregation
+- Summary table when copying probe results as Markdown
+- Data usage note on the probe page during loading
+- Speed test chart labels and bar numbers limited to two decimal places
+
+
+### Changed
+- Admin results export limited to the current page and pagination reduced to 10 rows
+- Redesigned Markdown copy output with clearer headings
 
 ### Fixed
 - Handle null IP values to avoid template rendering errors
@@ -28,5 +36,7 @@ All notable changes to this project will be documented in this file.
 - Resolve TypeScript compilation errors in `App.tsx`
 - Assert client IP when running tests
 - Handle invalid IP values in `mask_ip`
+- Addressed markdown copy failures and speed test display issues
+- Preserved speed results per mode in the frontend
 
 
