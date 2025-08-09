@@ -21,6 +21,30 @@
 - Copy probe results as a Markdown summary table
 - One‑click deployment via Docker Compose or a prebuilt image
 
+## Tech Stack
+
+### Backend
+
+- Python 3
+- FastAPI
+- Uvicorn
+- SQLAlchemy & Pydantic
+- Jinja2 templates
+- SQLite
+
+### Frontend
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Chart.js
+
+### Deployment
+
+- Docker
+- Docker Compose
+
 ## Development
 
 - **Backend**: FastAPI with SQLite located in `backend/`
