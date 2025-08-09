@@ -35,6 +35,19 @@ function maskIp(ip?: string | null) {
   return ip;
 }
 
+function maskIpMd(ip?: string | null) {
+  if (!ip) return '';
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    return `${parts[0]}.xx.xx.${parts[3]}`;
+  }
+  return ip;
+}
+
+function maskIpsInText(text: string) {
+  return text.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/g, (_m, a, _b, _c, d) => `${a}.xx.xx.${d}`);
+}
+
 function getPingColor(ping: number) {
   if (ping < 50) return 'text-green-400';
   if (ping < 100) return 'text-yellow-400';
@@ -193,6 +206,22 @@ function App() {
   const [loadingMsg, setLoadingMsg] = useState('');
   const [currentThreads, setCurrentThreads] = useState(1);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  const generateMarkdown = () => {
+    const maskedIp = maskIpMd(info?.client_ip);
+    const pingText = pingOutput ? maskIpsInText(pingOutput) : '';
+    const traceText = traceOutput ? maskIpsInText(traceOutput) : '';
+    const singleDown = info?.single_dl_mbps?.toFixed(2) ?? '';
+    const singleUp = info?.single_ul_mbps?.toFixed(2) ?? '';
+    const multiDown = info?.multi_dl_mbps?.toFixed(2) ?? '';
+    const multiUp = info?.multi_ul_mbps?.toFixed(2) ?? '';
+    return `#VPS.TOWN NODE Probe\n\n##Your Connection Info\nIP: ${maskedIp}\nLocation: ${info?.location || 'Unknown'}\nASN: ${info?.asn || 'Unknown'}\nISP: ${info?.isp || 'Unknown'}\n\n##Auto Ping Test\n\n\u0060\u0060\u0060\n${pingText}\n\u0060\u0060\u0060\n\n##Traceroute\n\n\u0060\u0060\u0060\n${traceText}\n\u0060\u0060\u0060\n\n##Speed TEST\n\n|Type|Download (Mbps)|Upload (Mbps)|\n|---|---|---|\n|Single Thread|${singleDown}|${singleUp}|\n|Eight Threads|${multiDown}|${multiUp}|\n`;
+  };
+
+  const copyMarkdown = () => {
+    const md = generateMarkdown();
+    navigator.clipboard.writeText(md);
+  };
 
   const downloadControllers = useRef<AbortController[]>([]);
   const uploadXhrs = useRef<XMLHttpRequest[]>([]);
@@ -578,8 +607,16 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-green-900 to-black text-green-400 p-4 leading-[1.4]">
       <div className="app space-y-8">
-        <AsciiLogo />
-        <div className="dashboard">
+      <AsciiLogo />
+      <div className="text-center">
+        <button
+          className="px-4 py-2 bg-green-800 text-green-100 rounded"
+          onClick={copyMarkdown}
+        >
+          Copy Markdown
+        </button>
+      </div>
+      <div className="dashboard">
           {info ? (
             <TestSection title="Your Connection Info" className="card--info">
               <div>IP: {maskIp(info.client_ip)}</div>
@@ -613,14 +650,14 @@ function App() {
                     <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('location')}>
                       Location
                     </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden md:table-cell" onClick={() => handleSort('asn')}>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('asn')}>
                       ASN
                     </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden md:table-cell" onClick={() => handleSort('isp')}>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('isp')}>
                       ISP
                     </th>
                     <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('ping_ms')}>
-                      Ping
+                      Ping (min/avg/max)
                     </th>
                     <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_dl_mbps')}>
                       ⬇️ 单线程
@@ -628,10 +665,10 @@ function App() {
                     <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('single_ul_mbps')}>
                       ⬆️ 单线程
                     </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden sm:table-cell" onClick={() => handleSort('multi_dl_mbps')}>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('multi_dl_mbps')}>
                       ⬇️ 八线程
                     </th>
-                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer hidden sm:table-cell" onClick={() => handleSort('multi_ul_mbps')}>
+                    <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('multi_ul_mbps')}>
                       ⬆️ 八线程
                     </th>
                     <th className="px-2 py-1 border border-green-700 font-bold cursor-pointer" onClick={() => handleSort('timestamp')}>
@@ -646,8 +683,8 @@ function App() {
                       <td className="px-2 py-1 border border-green-700" title={r.location || undefined}>
                         {r.location && r.location !== 'Unknown' ? r.location : 'Unknown'}
                       </td>
-                      <td className="px-2 py-1 border border-green-700 hidden md:table-cell" title={r.asn || undefined}>{r.asn || 'Unknown'}</td>
-                      <td className="px-2 py-1 border border-green-700 hidden md:table-cell" title={r.isp || undefined}>{r.isp || 'Unknown'}</td>
+                      <td className="px-2 py-1 border border-green-700" title={r.asn || undefined}>{r.asn || 'Unknown'}</td>
+                      <td className="px-2 py-1 border border-green-700" title={r.isp || undefined}>{r.isp || 'Unknown'}</td>
                       <td className={`px-2 py-1 border border-green-700 ${typeof r.ping_ms === 'number' ? getPingColor(r.ping_ms) : ''}`}>
                         {typeof r.ping_ms === 'number'
                           ? `${(r.ping_min_ms ?? r.ping_ms).toFixed(2)}/${r.ping_ms.toFixed(2)}/${(r.ping_max_ms ?? r.ping_ms).toFixed(2)} ms`
@@ -663,12 +700,12 @@ function App() {
                           ? `${r.single_ul_mbps.toFixed(2)}`
                           : ''}
                       </td>
-                      <td className={`px-2 py-1 border border-green-700 hidden sm:table-cell ${typeof r.multi_dl_mbps === 'number' ? getSpeedColor(r.multi_dl_mbps) : ''}`}>
+                      <td className={`px-2 py-1 border border-green-700 ${typeof r.multi_dl_mbps === 'number' ? getSpeedColor(r.multi_dl_mbps) : ''}`}>
                         {typeof r.multi_dl_mbps === 'number'
                           ? `${r.multi_dl_mbps.toFixed(2)}`
                           : ''}
                       </td>
-                      <td className={`px-2 py-1 border border-green-700 hidden sm:table-cell ${typeof r.multi_ul_mbps === 'number' ? getSpeedColor(r.multi_ul_mbps) : ''}`}>
+                      <td className={`px-2 py-1 border border-green-700 ${typeof r.multi_ul_mbps === 'number' ? getSpeedColor(r.multi_ul_mbps) : ''}`}>
                         {typeof r.multi_ul_mbps === 'number'
                           ? `${r.multi_ul_mbps.toFixed(2)}`
                           : ''}
