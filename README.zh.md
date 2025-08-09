@@ -1,5 +1,11 @@
 [English](README.md)
 
+## 界面截图
+
+<img width="2259" height="1379" alt="image" src="https://github.com/user-attachments/assets/0d5da999-97d6-4209-8ba2-1803f32b0f53" />
+
+<img width="3797" height="5348" alt="image" src="https://github.com/user-attachments/assets/c563a821-57ba-42e3-8dcd-035b9b492a23" />
+
 ## 功能特性
 
 - 支持 ICMP Ping 延迟测试
