@@ -8,6 +8,7 @@ class TestRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    date = Column(String)
     client_ip = Column(String)
     user_agent = Column(String)
     location = Column(String)

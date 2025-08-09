@@ -24,6 +24,7 @@ class TestRecordBase(BaseModel):
     iperf_result: str | None = None
     test_target: str | None = None
     time_hour: str | None = None
+    date: str | None = None
 
 
 class TestRecordCreate(BaseModel):

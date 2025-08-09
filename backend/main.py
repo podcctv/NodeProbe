@@ -469,6 +469,7 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
             .replace(minute=0, second=0, microsecond=0)
             .strftime("%I:00%p")
         )
+        existing.date = to_shanghai(now).strftime("%Y-%m-%d")
         db_record = existing
     else:
         now = datetime.utcnow()
@@ -478,6 +479,7 @@ def probe_page(request: Request, db: Session = Depends(get_db)):
             .replace(minute=0, second=0, microsecond=0)
             .strftime("%I:00%p")
         )
+        data["date"] = to_shanghai(now).strftime("%Y-%m-%d")
         db_record = models.TestRecord(**data)
         db.add(db_record)
 
@@ -632,6 +634,7 @@ def create_test(
                 .replace(minute=0, second=0, microsecond=0)
                 .strftime("%I:00%p")
             ),
+            "date": to_shanghai(now).strftime("%Y-%m-%d"),
         }
         return schemas.TestRecord(id=0, **mapped)
 
@@ -691,6 +694,7 @@ def create_test(
             .replace(minute=0, second=0, microsecond=0)
             .strftime("%I:00%p")
         )
+        existing.date = to_shanghai(now).strftime("%Y-%m-%d")
 
         db.commit()
         db.refresh(existing)
@@ -715,6 +719,7 @@ def create_test(
             .replace(minute=0, second=0, microsecond=0)
             .strftime("%I:00%p")
         ),
+        "date": to_shanghai(now).strftime("%Y-%m-%d"),
     }
     if speedtest_type == "single":
         mapped["single_dl_mbps"] = dl
@@ -772,6 +777,7 @@ def admin_create_test(
             .strftime("%I:00%p")
         ),
     )
+    data.setdefault("date", to_shanghai(now).strftime("%Y-%m-%d"))
     existing = (
         db.query(models.TestRecord)
         .filter(models.TestRecord.client_ip == data.get("client_ip"))
