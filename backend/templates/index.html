@@ -112,12 +112,20 @@
     <h2>Speed Test <span id="download-speed"></span></h2>
     <button onclick="runSpeedtest()">Run Speed Test</button>
     <div>
-      <div>Download Progress</div>
-      <progress id="download-progress" max="100" value="0"></progress>
+      <div>Single Thread Download <span id="single-download-speed"></span></div>
+      <progress id="single-download-progress" max="100" value="0"></progress>
     </div>
     <div>
-      <div>Upload Progress</div>
-      <progress id="upload-progress" max="100" value="0"></progress>
+      <div>Single Thread Upload <span id="single-upload-speed"></span></div>
+      <progress id="single-upload-progress" max="100" value="0"></progress>
+    </div>
+    <div>
+      <div>Multi Thread Download <span id="multi-download-speed"></span></div>
+      <progress id="multi-download-progress" max="100" value="0"></progress>
+    </div>
+    <div>
+      <div>Multi Thread Upload <span id="multi-upload-speed"></span></div>
+      <progress id="multi-upload-progress" max="100" value="0"></progress>
     </div>
     <pre id="speed-output"></pre>
 
@@ -254,11 +262,11 @@
         });
       }
 
-      async function runSpeedtestOnce(threads, label) {
+      async function runSpeedtestOnce(threads, label, dlEl, ulEl) {
         const downloadSize = 5 * 1024 * 1024; // 5 MB
         const uploadSize = 2 * 1024 * 1024; // 2 MB
-        const down = await downloadWithProgress(downloadSize, threads, document.getElementById('download-progress'));
-        const up = await uploadWithProgress(uploadSize, threads, document.getElementById('upload-progress'));
+        const down = await downloadWithProgress(downloadSize, threads, dlEl);
+        const up = await uploadWithProgress(uploadSize, threads, ulEl);
         await fetch('/tests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -275,8 +283,22 @@
 
       async function runSpeedtest() {
         const multiThreads = 8;
-        const single = await runSpeedtestOnce(1, 'single');
-        const multi = await runSpeedtestOnce(multiThreads, 'multi');
+        const single = await runSpeedtestOnce(
+          1,
+          'single',
+          document.getElementById('single-download-progress'),
+          document.getElementById('single-upload-progress')
+        );
+        document.getElementById('single-download-speed').textContent = `${single.down} Mbps`;
+        document.getElementById('single-upload-speed').textContent = `${single.up} Mbps`;
+        const multi = await runSpeedtestOnce(
+          multiThreads,
+          'multi',
+          document.getElementById('multi-download-progress'),
+          document.getElementById('multi-upload-progress')
+        );
+        document.getElementById('multi-download-speed').textContent = `${multi.down} Mbps`;
+        document.getElementById('multi-upload-speed').textContent = `${multi.up} Mbps`;
         document.getElementById('speed-output').textContent =
           `Single Thread - Download: ${single.down} Mbps Upload: ${single.up} Mbps\n` +
           `Multi Thread (${multiThreads}) - Download: ${multi.down} Mbps Upload: ${multi.up} Mbps`;
