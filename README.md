@@ -1,6 +1,14 @@
 
 [中文文档](README.zh.md)
 
+
+## Screenshots
+
+<img width="2259" height="1379" alt="image" src="https://github.com/user-attachments/assets/0d5da999-97d6-4209-8ba2-1803f32b0f53" />
+
+<img width="3797" height="5348" alt="image" src="https://github.com/user-attachments/assets/c563a821-57ba-42e3-8dcd-035b9b492a23" />
+
+
 ## Features
 
 - ICMP ping with latency measurement
