@@ -92,6 +92,6 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
     chart.update();
   }, [speeds, multi]);
 
-  return <canvas ref={canvasRef} className="chart" />;
+  return <canvas ref={canvasRef} className="chart w-full h-full" />;
 }
 
