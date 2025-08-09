@@ -1,4 +1,11 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import SpeedChart from './SpeedChart';
 import TestSection from './TestSection';
 
@@ -200,13 +207,14 @@ function App() {
     single: null,
     multi: null,
   });
-  const [downloadSpeeds, setDownloadSpeeds] = useState<number[]>([]);
-  const [uploadSpeeds, setUploadSpeeds] = useState<number[]>([]);
+  const [singleDownloadSpeeds, setSingleDownloadSpeeds] = useState<number[]>([]);
+  const [singleUploadSpeeds, setSingleUploadSpeeds] = useState<number[]>([]);
+  const [multiDownloadSpeeds, setMultiDownloadSpeeds] = useState<number[]>([]);
+  const [multiUploadSpeeds, setMultiUploadSpeeds] = useState<number[]>([]);
   const [currentDownloadSpeed, setCurrentDownloadSpeed] = useState(0);
   const [currentUploadSpeed, setCurrentUploadSpeed] = useState(0);
   const [speedRunning, setSpeedRunning] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
-  const [currentThreads, setCurrentThreads] = useState(1);
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const generateMarkdown = () => {
@@ -221,13 +229,24 @@ function App() {
   };
 
   const copyMarkdown = async () => {
+    const md = generateMarkdown();
     try {
-      const md = generateMarkdown();
       await navigator.clipboard.writeText(md);
       alert('Markdown copied to clipboard');
     } catch (err) {
-      console.error('Copy failed', err);
-      alert('Copy failed');
+      console.error('Clipboard API failed', err);
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = md;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Markdown copied to clipboard');
+      } catch (err2) {
+        console.error('Copy failed', err2);
+        alert('Copy failed');
+      }
     }
   };
 
@@ -357,9 +376,13 @@ function App() {
     return `${bar} ${transferredMB}M/${sizeMB}M ${percent}%`;
   }
 
-  async function downloadWithProgress(size: number, threads = 1) {
+  async function downloadWithProgress(
+    size: number,
+    threads = 1,
+    setSpeeds: Dispatch<SetStateAction<number[]>>
+  ) {
     setDownloadProgress({ transferred: 0, size });
-    setDownloadSpeeds([]);
+    setSpeeds([]);
     setCurrentDownloadSpeed(0);
     if (threads === 1) {
       const controller = new AbortController();
@@ -383,7 +406,7 @@ function App() {
         if (now - intervalStart >= 1000) {
           const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
           setCurrentDownloadSpeed((p) => p * 0.5 + speed * 0.5);
-          setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+          setSpeeds((s) => [...s.slice(-99), speed]);
           intervalBytes = 0;
           intervalStart = now;
         }
@@ -391,7 +414,7 @@ function App() {
       const end = performance.now();
       const speed = (size * 8) / (end - start) / 1000;
       setCurrentDownloadSpeed(speed);
-      setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+      setSpeeds((s) => [...s.slice(-99), speed]);
       return speed;
     }
 
@@ -420,7 +443,7 @@ function App() {
             if (now - intervalStart >= 1000) {
               const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
               setCurrentDownloadSpeed((p) => p * 0.5 + speed * 0.5);
-              setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+              setSpeeds((s) => [...s.slice(-99), speed]);
               intervalBytes = 0;
               intervalStart = now;
             }
@@ -432,13 +455,17 @@ function App() {
     const end = performance.now();
     const speed = (size * 8) / (end - start) / 1000;
     setCurrentDownloadSpeed(speed);
-    setDownloadSpeeds((s) => [...s.slice(-99), speed]);
+    setSpeeds((s) => [...s.slice(-99), speed]);
     return speed;
   }
 
-  function uploadWithProgress(size: number, threads = 1) {
+  function uploadWithProgress(
+    size: number,
+    threads = 1,
+    setSpeeds: Dispatch<SetStateAction<number[]>>
+  ) {
     setUploadProgress({ transferred: 0, size });
-    setUploadSpeeds([]);
+    setSpeeds([]);
     setCurrentUploadSpeed(0);
     if (threads === 1) {
       return new Promise<number>((resolve, reject) => {
@@ -457,7 +484,7 @@ function App() {
           if (now - intervalStart >= 1000 && intervalBytes > 0) {
             const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
             setCurrentUploadSpeed((p) => p * 0.5 + speed * 0.5);
-            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            setSpeeds((s) => [...s.slice(-99), speed]);
             intervalBytes = 0;
             intervalStart = now;
           }
@@ -467,7 +494,7 @@ function App() {
           const end = performance.now();
           const speed = (size * 8) / (end - start) / 1000;
           setCurrentUploadSpeed(speed);
-          setUploadSpeeds((s) => [...s.slice(-99), speed]);
+          setSpeeds((s) => [...s.slice(-99), speed]);
           resolve(speed);
         };
         xhr.onerror = () => reject(new Error('Upload failed'));
@@ -498,7 +525,7 @@ function App() {
           if (now - intervalStart >= 1000 && intervalBytes > 0) {
             const speed = (intervalBytes * 8) / (now - intervalStart) / 1000;
             setCurrentUploadSpeed((p) => p * 0.5 + speed * 0.5);
-            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            setSpeeds((s) => [...s.slice(-99), speed]);
             intervalBytes = 0;
             intervalStart = now;
           }
@@ -509,7 +536,7 @@ function App() {
             const end = performance.now();
             const speed = (size * 8) / (end - start) / 1000;
             setCurrentUploadSpeed(speed);
-            setUploadSpeeds((s) => [...s.slice(-99), speed]);
+            setSpeeds((s) => [...s.slice(-99), speed]);
             resolve(speed);
           }
         };
@@ -530,10 +557,18 @@ function App() {
     setSpeedResult((prev) => ({ ...prev, [key]: null }));
     downloadControllers.current = [];
     uploadXhrs.current = [];
+    const downloadSetter =
+      threads === 1 ? setSingleDownloadSpeeds : setMultiDownloadSpeeds;
+    const uploadSetter =
+      threads === 1 ? setSingleUploadSpeeds : setMultiUploadSpeeds;
 
     const speedtestPromise = (async () => {
-      const down = await downloadWithProgress(downloadSize, threads);
-      const up = await uploadWithProgress(uploadSize, threads);
+      const down = await downloadWithProgress(
+        downloadSize,
+        threads,
+        downloadSetter
+      );
+      const up = await uploadWithProgress(uploadSize, threads, uploadSetter);
       await fetch('/tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -587,7 +622,6 @@ function App() {
     threads: number
   ) => {
     setActivePreset(preset);
-    setCurrentThreads(threads);
     runSpeedtest(downloadSize, uploadSize, threads);
   };
   if (loading) {
@@ -856,27 +890,39 @@ function App() {
           </header>
 
           <div className="speed__grid">
-            {downloadSpeeds.length > 0 && (
+            {singleDownloadSpeeds.length > 0 && (
               <div className="panel">
-                <div className="panel__title">Download</div>
-                <SpeedChart
-                  speeds={downloadSpeeds}
-                  multi={currentThreads > 1}
-                />
+                <div className="panel__title">Download (Single)</div>
+                <SpeedChart speeds={singleDownloadSpeeds} multi={false} />
                 <div className="panel__peak">
-                  {Math.max(...downloadSpeeds).toFixed(2)} Mbps
+                  {Math.max(...singleDownloadSpeeds).toFixed(2)} Mbps
                 </div>
               </div>
             )}
-            {uploadSpeeds.length > 0 && (
+            {singleUploadSpeeds.length > 0 && (
               <div className="panel">
-                <div className="panel__title">Upload</div>
-                <SpeedChart
-                  speeds={uploadSpeeds}
-                  multi={currentThreads > 1}
-                />
+                <div className="panel__title">Upload (Single)</div>
+                <SpeedChart speeds={singleUploadSpeeds} multi={false} />
                 <div className="panel__peak">
-                  {Math.max(...uploadSpeeds).toFixed(2)} Mbps
+                  {Math.max(...singleUploadSpeeds).toFixed(2)} Mbps
+                </div>
+              </div>
+            )}
+            {multiDownloadSpeeds.length > 0 && (
+              <div className="panel">
+                <div className="panel__title">Download (Multi)</div>
+                <SpeedChart speeds={multiDownloadSpeeds} multi />
+                <div className="panel__peak">
+                  {Math.max(...multiDownloadSpeeds).toFixed(2)} Mbps
+                </div>
+              </div>
+            )}
+            {multiUploadSpeeds.length > 0 && (
+              <div className="panel">
+                <div className="panel__title">Upload (Multi)</div>
+                <SpeedChart speeds={multiUploadSpeeds} multi />
+                <div className="panel__peak">
+                  {Math.max(...multiUploadSpeeds).toFixed(2)} Mbps
                 </div>
               </div>
             )}
