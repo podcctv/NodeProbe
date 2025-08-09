@@ -66,7 +66,7 @@
         </div>
     </section>
 <script>
-const pageSize = 100;
+const pageSize = 10;
 let currentPage = 1;
 let totalRecords = 0;
 let currentRecords = [];
@@ -192,9 +192,28 @@ document.getElementById('nextPage').addEventListener('click', () => {
 });
 
 document.getElementById('exportExcel').addEventListener('click', () => {
-    if (!currentRecords.length) return;
+    const rowsEls = Array.from(document.querySelectorAll('#recordsTable tbody tr'));
+    if (!rowsEls.length) return;
     const header = ['Client IP','Date','Time','Location','ASN','ISP','Ping Avg(ms)','Ping Min(ms)','Ping Max(ms)','Single DL(Mbps)','Single UL(Mbps)','Multi DL(Mbps)','Multi UL(Mbps)','Target'];
-    const rows = currentRecords.map(r => [r.client_ip || '', r.date || '', r.time_hour || '', r.location || '', r.asn || '', r.isp || '', r.ping_ms ?? '', r.ping_min_ms ?? '', r.ping_max_ms ?? '', r.single_dl_mbps ?? '', r.single_ul_mbps ?? '', r.multi_dl_mbps ?? '', r.multi_ul_mbps ?? '', r.test_target || '']);
+    const rows = rowsEls.map(tr => {
+        const cells = tr.querySelectorAll('td');
+        return [
+            cells[4].textContent || '',
+            cells[2].textContent || '',
+            cells[3].textContent || '',
+            cells[5].textContent || '',
+            cells[6].textContent || '',
+            cells[7].textContent || '',
+            cells[8].textContent || '',
+            cells[9].textContent || '',
+            cells[10].textContent || '',
+            cells[11].textContent || '',
+            cells[12].textContent || '',
+            cells[13].textContent || '',
+            cells[14].textContent || '',
+            cells[15].textContent || '',
+        ];
+    });
     const csv = [header.join(','), ...rows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
