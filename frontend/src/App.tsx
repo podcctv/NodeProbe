@@ -225,7 +225,13 @@ function App() {
     const singleUp = info?.single_ul_mbps?.toFixed(2) ?? '';
     const multiDown = info?.multi_dl_mbps?.toFixed(2) ?? '';
     const multiUp = info?.multi_ul_mbps?.toFixed(2) ?? '';
-    return `# VPS.TOWN NODE Probe\n\n# Your Connection Info\n- IP: ${maskedIp}\n- Location: ${info?.location || 'Unknown'}\n- ASN: ${info?.asn || 'Unknown'}\n- ISP: ${info?.isp || 'Unknown'}\n\n# Auto Ping Test\n\n\u0060\u0060\u0060\n${pingText}\n\u0060\u0060\u0060\n\n# Traceroute\n\n\u0060\u0060\u0060\n${traceText}\n\u0060\u0060\u0060\n\n# Speed Test\n\n| Type | Download (Mbps) | Upload (Mbps) |\n| --- | --- | --- |\n| Single Thread | ${singleDown} | ${singleUp} |\n| Eight Threads | ${multiDown} | ${multiUp} |\n`;
+    const pingMin =
+      typeof info?.ping_min_ms === 'number' ? info.ping_min_ms.toFixed(2) : '';
+    const pingAvg =
+      typeof info?.ping_ms === 'number' ? info.ping_ms.toFixed(2) : '';
+    const pingMax =
+      typeof info?.ping_max_ms === 'number' ? info.ping_max_ms.toFixed(2) : '';
+    return `# VPS.TOWN NODE Probe\n\n| IP | Location | ASN | ISP | Ping (min/avg/max) | ⬇️ 单线程 | ⬆️ 单线程 | ⬇️ 八线程 | ⬆️ 八线程 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| ${maskedIp} | ${info?.location || 'Unknown'} | ${info?.asn || 'Unknown'} | ${info?.isp || 'Unknown'} | ${pingMin}/${pingAvg}/${pingMax} ms | ${singleDown} | ${singleUp} | ${multiDown} | ${multiUp} |\n\n# Your Connection Info\n- IP: ${maskedIp}\n- Location: ${info?.location || 'Unknown'}\n- ASN: ${info?.asn || 'Unknown'}\n- ISP: ${info?.isp || 'Unknown'}\n\n# Auto Ping Test\n\n\u0060\u0060\u0060\n${pingText}\n\u0060\u0060\u0060\n\n# Traceroute\n\n\u0060\u0060\u0060\n${traceText}\n\u0060\u0060\u0060\n\n# Speed Test\n\n| Type | Download (Mbps) | Upload (Mbps) |\n| --- | --- | --- |\n| Single Thread | ${singleDown} | ${singleUp} |\n| Eight Threads | ${multiDown} | ${multiUp} |\n`;
   };
 
   const copyMarkdown = async () => {
