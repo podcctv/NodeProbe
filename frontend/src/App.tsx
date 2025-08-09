@@ -860,43 +860,43 @@ function App() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  {singleDownloadSpeeds.length > 0 && (
-                    <div className="relative h-64 md:h-72">
-                      <div className="mb-1 text-xs text-emerald-300">Download (Single)</div>
-                      <SpeedChart speeds={singleDownloadSpeeds} multi={false} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative h-64">
+                    <div className="mb-1 text-xs text-emerald-300">Download (Single)</div>
+                    <SpeedChart speeds={singleDownloadSpeeds} multi={false} />
+                    {singleDownloadSpeeds.length > 0 && (
                       <div className="absolute right-2 top-1 text-xs text-emerald-300">
                         {Math.max(...singleDownloadSpeeds).toFixed(2)} Mbps
                       </div>
-                    </div>
-                  )}
-                  {singleUploadSpeeds.length > 0 && (
-                    <div className="relative h-64 md:h-72">
-                      <div className="mb-1 text-xs text-emerald-300">Upload (Single)</div>
-                      <SpeedChart speeds={singleUploadSpeeds} multi={false} />
+                    )}
+                  </div>
+                  <div className="relative h-64">
+                    <div className="mb-1 text-xs text-emerald-300">Upload (Single)</div>
+                    <SpeedChart speeds={singleUploadSpeeds} multi={false} />
+                    {singleUploadSpeeds.length > 0 && (
                       <div className="absolute right-2 top-1 text-xs text-emerald-300">
                         {Math.max(...singleUploadSpeeds).toFixed(2)} Mbps
                       </div>
-                    </div>
-                  )}
-                  {multiDownloadSpeeds.length > 0 && (
-                    <div className="relative h-64 md:h-72">
-                      <div className="mb-1 text-xs text-emerald-300">Download (Multi)</div>
-                      <SpeedChart speeds={multiDownloadSpeeds} multi />
+                    )}
+                  </div>
+                  <div className="relative h-64">
+                    <div className="mb-1 text-xs text-emerald-300">Download (Multi)</div>
+                    <SpeedChart speeds={multiDownloadSpeeds} multi />
+                    {multiDownloadSpeeds.length > 0 && (
                       <div className="absolute right-2 top-1 text-xs text-emerald-300">
                         {Math.max(...multiDownloadSpeeds).toFixed(2)} Mbps
                       </div>
-                    </div>
-                  )}
-                  {multiUploadSpeeds.length > 0 && (
-                    <div className="relative h-64 md:h-72">
-                      <div className="mb-1 text-xs text-emerald-300">Upload (Multi)</div>
-                      <SpeedChart speeds={multiUploadSpeeds} multi />
+                    )}
+                  </div>
+                  <div className="relative h-64">
+                    <div className="mb-1 text-xs text-emerald-300">Upload (Multi)</div>
+                    <SpeedChart speeds={multiUploadSpeeds} multi />
+                    {multiUploadSpeeds.length > 0 && (
                       <div className="absolute right-2 top-1 text-xs text-emerald-300">
                         {Math.max(...multiUploadSpeeds).toFixed(2)} Mbps
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <pre className="whitespace-pre-wrap text-left font-mono bg-emerald-950/50 p-4 rounded">

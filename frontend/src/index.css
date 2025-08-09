@@ -142,9 +142,10 @@
   opacity: 0.9;
 }
 .chart {
-  flex: 1;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 .panel__peak {
   position: absolute;
