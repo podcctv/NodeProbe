@@ -637,6 +637,7 @@ function App() {
           <span className="sr-only">正在加载，请稍候</span>
           <div className="w-12 h-12 border-4 border-green-400/30 border-t-green-400 rounded-full animate-spin will-change-[transform] motion-reduce:animate-none" />
           <div className="text-lg animate-pulse motion-reduce:animate-none">测试中，请不要关闭或刷新。</div>
+          <div className="text-lg animate-pulse motion-reduce:animate-none">测试大概消耗300Mb流量</div>
           {loadingMsg && (
             <div className="text-sm animate-pulse motion-reduce:animate-none">{loadingMsg}</div>
           )}
