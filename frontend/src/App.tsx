@@ -664,7 +664,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a1a0a] to-[#021505] text-[var(--text)]">
-      <main className="mx-auto container max-w-screen-xl px-4 lg:px-6 space-y-6">
+      <main className="app space-y-6">
         <AsciiLogo />
         <div className="text-center">
           <button
