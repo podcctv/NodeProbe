@@ -568,6 +568,10 @@ function App() {
     const uploadSetter =
       threads === 1 ? setSingleUploadSpeeds : setMultiUploadSpeeds;
 
+    // Clear previous speed records to reset chart axis
+    downloadSetter([]);
+    uploadSetter([]);
+
     const speedtestPromise = (async () => {
       const down = await downloadWithProgress(
         downloadSize,
@@ -699,7 +703,7 @@ function App() {
 
             <TestSection title="Recent Tests">
               {sortedRecords.length > 0 ? (
-                <div className="max-h-60 overflow-auto">
+                <div className="max-h-60 overflow-auto rounded border border-emerald-900/40">
                   <table className="min-w-full text-xs leading-6 text-left">
                     <thead className="sticky top-0 bg-emerald-900/20 backdrop-blur">
                       <tr className="text-emerald-300">
