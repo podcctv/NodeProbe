@@ -1,4 +1,4 @@
-[![Docker Image CI](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml/badge.svg)](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml)
+[![Build & Publish Docker](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml/badge.svg)](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml)
 
 
 
