@@ -1,3 +1,6 @@
+[![Docker Image CI](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml/badge.svg)](https://github.com/podcctv/NodeProbe/actions/workflows/docker-build.yml)
+
+
 
 [中文文档](README.zh.md)
 
