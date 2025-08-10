@@ -55,6 +55,17 @@
   gap: var(--gap);
 }
 
+@media (min-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "info info"
+      "recent recent"
+      "ping trace"
+      "speed speed";
+  }
+}
+
 .card--info   { grid-area: info; }
 .card--recent { grid-area: recent; }
 .card--ping   { grid-area: ping; }
