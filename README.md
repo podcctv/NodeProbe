@@ -1,14 +1,6 @@
 
 [中文文档](README.zh.md)
 
-
-## Screenshots
-
-<img width="2259" height="1379" alt="image" src="https://github.com/user-attachments/assets/0d5da999-97d6-4209-8ba2-1803f32b0f53" />
-
-<img width="3797" height="5348" alt="image" src="https://github.com/user-attachments/assets/c563a821-57ba-42e3-8dcd-035b9b492a23" />
-
-
 ## Features
 
 - ICMP ping with latency measurement
@@ -20,30 +12,6 @@
 - Grouped test statistics by browser and IP with hourly aggregation
 - Copy probe results as a Markdown summary table
 - One‑click deployment via Docker Compose or a prebuilt image
-
-## Tech Stack
-
-### Backend
-
-- Python 3
-- FastAPI
-- Uvicorn
-- SQLAlchemy & Pydantic
-- Jinja2 templates
-- SQLite
-
-### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Chart.js
-
-### Deployment
-
-- Docker
-- Docker Compose
 
 ## Development
 

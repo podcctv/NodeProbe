@@ -20,20 +20,9 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
 
     chartRef.current = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: [],
-        datasets: [
-          {
-            data: [],
-            borderWidth: 1.5,
-            borderRadius: 5,
-            barPercentage: 0.5,
-            categoryPercentage: 0.55,
-          },
-        ],
-      },
+      data: { labels: [], datasets: [{ data: [], borderWidth: 1.5, borderRadius: 5, barPercentage: 0.5, categoryPercentage: 0.55 }] },
       options: {
-        indexAxis: 'y',
+        indexAxis: 'x',
         maintainAspectRatio: false,
         layout: { padding: { left: 8, right: 8, top: 8, bottom: 6 } },
         plugins: {
@@ -48,25 +37,25 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
           datalabels: {
             color: '#d7ffe9',
             anchor: 'end',
-            align: 'right',
+            align: 'end',
             offset: 4,
             font: { size: 10, weight: 600 },
             formatter: (value: number, context) => {
-              const x = context.chart.scales.x.getPixelForValue(value);
-              return x > context.chart.width - 20 ? '' : value.toFixed(2);
+              const y = context.chart.scales.y.getPixelForValue(value);
+              return y < 20 ? '' : value.toFixed(2);
             },
           },
         },
         scales: {
           x: {
-            beginAtZero: true,
-            grid: { color: 'rgba(26,255,122,.10)' },
-            ticks: { color: '#8deabf', font: { size: 11 } },
-          },
-          y: {
             type: 'category',
             grid: { display: false },
             ticks: { color: '#9fffcf', font: { size: 11 } },
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(26,255,122,.10)' },
+            ticks: { color: '#8deabf', font: { size: 11 } },
           },
         },
       },
@@ -84,7 +73,7 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
     if (!chart || !canvas) return;
     const ctx = chart.ctx;
 
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     if (multi) {
       gradient.addColorStop(0, 'rgba(229,58,214,0.95)');
       gradient.addColorStop(1, 'rgba(229,58,214,0.25)');
@@ -103,6 +92,6 @@ export default function SpeedChart({ speeds, multi }: SpeedChartProps) {
     chart.update();
   }, [speeds, multi]);
 
-  return <canvas ref={canvasRef} className="chart w-full h-full" />;
+  return <canvas ref={canvasRef} className="chart" />;
 }
 

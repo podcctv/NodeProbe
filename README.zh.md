@@ -1,11 +1,5 @@
 [English](README.md)
 
-## 界面截图
-
-<img width="2259" height="1379" alt="image" src="https://github.com/user-attachments/assets/0d5da999-97d6-4209-8ba2-1803f32b0f53" />
-
-<img width="3797" height="5348" alt="image" src="https://github.com/user-attachments/assets/c563a821-57ba-42e3-8dcd-035b9b492a23" />
-
 ## 功能特性
 
 - 支持 ICMP Ping 延迟测试
@@ -17,30 +11,6 @@
 - 按浏览器与 IP 分组的测试统计并按小时聚合
 - 一键复制测试结果为包含汇总表格的 Markdown
 - 通过 Docker Compose 或预构建镜像一键部署
-
-## 技术栈
-
-### 后端
-
-- Python 3
-- FastAPI
-- Uvicorn
-- SQLAlchemy 与 Pydantic
-- Jinja2 模板
-- SQLite
-
-### 前端
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Chart.js
-
-### 部署
-
-- Docker
-- Docker Compose
 
 ## 开发环境
 
