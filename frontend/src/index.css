@@ -13,11 +13,6 @@
 :root {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   line-height: 1.4;
-  --bg: #071207;
-  --panel: 24 58 24;
-  --text: #d9f7d9;
-  --muted: #a1d7a1;
-  --accent: #21c764;
   --container: 1280px;
   --gap: 16px;
   --green: #1aff7a;
@@ -40,17 +35,12 @@
 }
 @media (min-width: 1920px) {
   :root {
-    --container: 1600px;
+    --container: 1520px;
   }
 }
 @media (min-width: 2560px) {
   :root {
-    --container: 1800px;
-  }
-}
-@media (min-width: 3840px) {
-  :root {
-    --container: 2200px;
+    --container: 1680px;
   }
 }
 
@@ -142,10 +132,9 @@
   opacity: 0.9;
 }
 .chart {
+  flex: 1;
   position: relative;
   overflow: hidden;
-  width: 100%;
-  height: 100%;
 }
 .panel__peak {
   position: absolute;
