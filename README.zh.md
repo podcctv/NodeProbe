@@ -1,5 +1,11 @@
 [English](README.md)
 
+## 技术栈
+
+- **后端**：Python FastAPI + SQLite，位于 `backend/`
+- **前端**：React + TypeScript，使用 Vite 与 Tailwind CSS 构建，位于 `frontend/`
+- **部署**：通过 Docker 与 Docker Compose 进行封装并一键启动
+
 ## 功能特性
 
 - 支持 ICMP Ping 延迟测试
@@ -13,9 +19,6 @@
 - 通过 Docker Compose 或预构建镜像一键部署
 
 ## 开发环境
-
-- **后端**：位于 `backend/` 的 FastAPI + SQLite
-- **前端**：位于 `frontend/` 的 React + Vite + Tailwind CSS
 
 ### 快速开始
 
