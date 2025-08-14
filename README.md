@@ -4,6 +4,12 @@
 
 [中文文档](README.zh.md)
 
+## Tech Stack
+
+- **Backend**: Python FastAPI with SQLite located in `backend/`
+- **Frontend**: React + TypeScript built with Vite and Tailwind CSS located in `frontend/`
+- **Deployment**: Docker and Docker Compose for packaging and one‑click setup
+
 ## Features
 
 - ICMP ping with latency measurement
@@ -17,9 +23,6 @@
 - One‑click deployment via Docker Compose or a prebuilt image
 
 ## Development
-
-- **Backend**: FastAPI with SQLite located in `backend/`
-- **Frontend**: React + Vite + Tailwind CSS located in `frontend/`
 
 ### Quick start
 
